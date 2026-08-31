@@ -193,20 +193,23 @@ body.sidebar-collapsed .game-view-bg-mask { left: 0; }
 /* 游戏列表项：无图标时状态圆点 / 有图标时缩略图+泛光 + 编辑按钮 */
 .game-item { position: relative; }
 
-/* 状态泛光圆点（未设置自定义图标时） */
-.game-item .g-dot {
+/* 状态泛光圆点（未设置自定义图片图标时：侧边栏 / 今日待办 / 游戏视图头部） */
+.g-dot {
   width: 10px; height: 10px;
   border-radius: 50%;
   flex: none;
   transition: box-shadow 0.2s;
 }
-.game-item .g-dot.red    { background: #ff4757; box-shadow: 0 0 5px 1px rgba(255,71,87,.6), 0 0 12px 3px rgba(255,71,87,.28), 0 0 20px 6px rgba(255,71,87,.12); }
-.game-item .g-dot.yellow { background: #ffc53d; box-shadow: 0 0 5px 1px rgba(255,197,61,.65), 0 0 12px 3px rgba(255,197,61,.3), 0 0 20px 6px rgba(255,197,61,.12); }
-.game-item .g-dot.blue   { background: #4d7cff; box-shadow: 0 0 5px 1px rgba(77,124,255,.6), 0 0 12px 3px rgba(77,124,255,.3), 0 0 20px 6px rgba(77,124,255,.12); }
-.game-item .g-dot.green  { background: #34d399; box-shadow: 0 0 5px 1px rgba(52,211,153,.6), 0 0 12px 3px rgba(52,211,153,.3), 0 0 20px 6px rgba(52,211,153,.12); }
-.game-item .g-dot.gray   { background: rgba(255,255,255,0.30); box-shadow: 0 0 4px 1px rgba(255,255,255,.14); }
+.g-dot.red    { background: #ff4757; box-shadow: 0 0 5px 1px rgba(255,71,87,.6), 0 0 12px 3px rgba(255,71,87,.28), 0 0 20px 6px rgba(255,71,87,.12); }
+.g-dot.yellow { background: #ffc53d; box-shadow: 0 0 5px 1px rgba(255,197,61,.65), 0 0 12px 3px rgba(255,197,61,.3), 0 0 20px 6px rgba(255,197,61,.12); }
+.g-dot.blue   { background: #4d7cff; box-shadow: 0 0 5px 1px rgba(77,124,255,.6), 0 0 12px 3px rgba(77,124,255,.3), 0 0 20px 6px rgba(77,124,255,.12); }
+.g-dot.green  { background: #34d399; box-shadow: 0 0 5px 1px rgba(52,211,153,.6), 0 0 12px 3px rgba(52,211,153,.3), 0 0 20px 6px rgba(52,211,153,.12); }
+.g-dot.gray   { background: rgba(255,255,255,0.30); box-shadow: 0 0 4px 1px rgba(255,255,255,.14); }
+/* 头部（今日待办 / 游戏视图）圆点尺寸放大，便于辨识 */
+.dash-game-head .g-emoji .g-dot { width: 13px; height: 13px; }
+.game-head .gh-emoji .g-dot { width: 20px; height: 20px; }
 
-/* 通用缩略图（方形圆角容器：图片或游戏名首字） */
+/* 通用缩略图（方形圆角容器：图片图标） */
 .thumb {
   display: inline-flex;
   align-items: center; justify-content: center;
@@ -215,11 +218,6 @@ body.sidebar-collapsed .game-view-bg-mask { left: 0; }
   flex: none;
 }
 .thumb .thumb-img, .g-thumb .thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.thumb .thumb-init {
-  font-weight: 700;
-  color: var(--accent);
-  line-height: 1;
-}
 
 /* 侧边栏缩略图（原状态圆点位置）：红黄蓝绿泛光环绕缩略图边缘 */
 .game-item .g-thumb {

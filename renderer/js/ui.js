@@ -93,16 +93,15 @@ export function initUI(store, api) {
     return canvas.toDataURL('image/jpeg', 0.85);
   }
 
-  /** 游戏缩略图内部内容：自定义图片优先，否则显示游戏名首字（不再使用 emoji） */
+  /** 游戏缩略图内部内容：图片图标 */
   function iconThumbInner(game) {
-    if (game && game.iconImage) return `<img class="thumb-img" src="${esc(game.iconImage)}" alt="" draggable="false" />`;
-    const ch = (game?.name || '').trim().charAt(0) || '?';
-    return `<span class="thumb-init">${esc(ch)}</span>`;
+    return `<img class="thumb-img" src="${esc(game.iconImage)}" alt="" draggable="false" />`;
   }
 
-  /** 游戏图标缩略图（方形圆角容器） */
-  function iconHTML(game) {
-    return `<span class="thumb">${iconThumbInner(game)}</span>`;
+  /** 游戏图标：有图片 → 缩略图；无图片 → 状态圆点（与侧边栏一致） */
+  function iconHTML(game, statusLevel) {
+    if (game && game.iconImage) return `<span class="thumb">${iconThumbInner(game)}</span>`;
+    return `<span class="g-dot ${statusLevel || 'gray'}"></span>`;
   }
 
   function catColor(cat) {
@@ -197,6 +196,7 @@ export function initUI(store, api) {
     const gameBlocks = [];
     for (const g of data.games) {
       const tasks = data.tasks.filter((t) => t.gameId === g.id);
+      const status = gameStatus(g, tasks, now);
       const rows = [];
       for (const t of tasks) {
         const done = isDone(t, g, now);
@@ -253,7 +253,7 @@ export function initUI(store, api) {
       ${gameBlocks.map(({ g, rows }) => `
         <div class="dash-game">
           <div class="dash-game-head" data-action="open-game" data-id="${g.id}">
-            <span class="g-emoji">${iconHTML(g)}</span>
+            <span class="g-emoji">${iconHTML(g, status.level)}</span>
             <span class="g-name">${esc(g.name)}</span>
             <span class="g-add" data-action="add-task-for" data-id="${g.id}" title="给「${esc(g.name)}」添加任务">＋ 任务</span>
             <span class="g-go">进入 ›</span>
@@ -287,6 +287,7 @@ export function initUI(store, api) {
       .filter((t) => t.gameId === game.id)
       .filter((t) => !q || t.title.toLowerCase().includes(q) || t.notes.toLowerCase().includes(q));
     const s = statsOf(game, data.tasks.filter((t) => t.gameId === game.id), now);
+    const gStatus = gameStatus(game, data.tasks.filter((t) => t.gameId === game.id), now);
 
     const chips = [];
     if (s.dailyTotal > 0) chips.push(`<span class="chip">每日 <b>${s.dailyDone}/${s.dailyTotal}</b></span>`);
@@ -324,7 +325,7 @@ export function initUI(store, api) {
         ${bgLayer}
         <div class="game-view-content">
           <div class="game-head">
-            <span class="gh-emoji">${iconHTML(game)}</span>
+            <span class="gh-emoji">${iconHTML(game, gStatus.level)}</span>
             <div class="gh-mid">
               <div class="gh-name">${esc(game.name)}</div>
               <div class="gh-sub">每日重置 ${String(game.dailyResetHour).padStart(2, '0')}:00 · 每周重置 ${WEEKDAY_LABEL[game.weeklyResetDay ?? 1]}</div>

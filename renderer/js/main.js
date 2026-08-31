@@ -281,11 +281,13 @@ async function runSmoke() {
   const eventSec = [...document.querySelectorAll('.cat-section')].find((s) => s.querySelector('.cat-name')?.textContent === '活动');
   const evTitles = eventSec ? [...eventSec.querySelectorAll('.task-card .tc-title')].map((e) => e.textContent) : [];
   check('活动: 游戏视图活动按剩余天数排序（过期在前）', evTitles[0] === '签到活动（已过期）');
+  check('游戏视图: 无图片图标时头部显示状态圆点', Boolean(document.querySelector('.game-head .gh-emoji .g-dot')));
 
   // 18. 今日待办：每游戏内顺序 每日→每周→活动→主线；活动按剩余天数升序
   ui.goTo('dashboard');
   await new Promise((r) => setTimeout(r, 120));
   const firstBlock = document.querySelector('.dash-game');
+  check('待办: 无图片图标时头部显示状态圆点', Boolean(firstBlock && firstBlock.querySelector('.dash-game-head .g-dot')));
   const cats = firstBlock ? [...firstBlock.querySelectorAll('.todo-row')].map((row) => {
     if (row.querySelector('.row-due')) return '活动';
     return row.querySelector('.row-tag')?.textContent.trim() || '?';
