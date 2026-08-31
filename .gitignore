@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.tmp/
+.npm-cache/
+.electron-cache/
+.dsh-vision-toolkit/
+*.log

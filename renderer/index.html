@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'" />
+  <title>游迹 · 游戏任务记录器</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- 自绘标题栏（拖拽区 + 窗口按钮） -->
+    <header id="titlebar">
+      <div class="tb-drag">
+        <img class="tb-logo" src="../assets/icon.png" alt="" draggable="false" />
+        <span class="tb-name">游迹</span>
+        <span id="tb-clock" class="tb-clock"></span>
+      </div>
+      <div class="tb-btns">
+        <button id="btn-sidebar" class="tb-btn" title="收起侧边栏">«</button>
+        <button id="btn-pin" class="tb-btn" title="保持置顶（Ctrl+Shift+P）">📌</button>
+        <button id="btn-min" class="tb-btn" title="最小化">—</button>
+        <button id="btn-close" class="tb-btn tb-close" title="收进托盘">✕</button>
+      </div>
+    </header>
+
+    <div id="body">
+      <!-- 侧栏：今日待办 / 游戏列表 / 设置 -->
+      <aside id="sidebar">
+        <nav id="sidebar-nav">
+          <button class="nav-item" data-view="dashboard"><span class="nav-ico">📋</span><span class="nav-label">今日待办</span></button>
+          <div class="sidebar-caption">游戏</div>
+          <div id="game-list"></div>
+          <button class="nav-item nav-add" id="btn-add-game"><span class="nav-ico">＋</span><span class="nav-label">添加游戏</span></button>
+        </nav>
+        <footer id="sidebar-footer">
+          <button class="nav-item" data-view="settings"><span class="nav-ico">⚙</span><span class="nav-label">设置</span></button>
+        </footer>
+      </aside>
+
+      <!-- 侧栏宽度拖拽分隔条 -->
+      <div id="sidebar-resizer" title="拖拽调整侧栏宽度"></div>
+
+      <!-- 内容区 -->
+      <main id="content"></main>
+    </div>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast-root"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

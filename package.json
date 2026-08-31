@@ -1,0 +1,51 @@
+{
+  "name": "game-remainder",
+  "productName": "游迹 · 游戏任务记录器",
+  "version": "1.0.0",
+  "description": "面向 PC 的悬浮置顶游戏任务记录器：多游戏隔离，每日/每周/主线/活动任务一键勾选，亚克力材质窗口。",
+  "type": "module",
+  "main": "main.cjs",
+  "author": "GameRemainder",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --smoke",
+    "shots": "electron . --shots",
+    "test": "node test/model.test.mjs",
+    "icon": "node scripts/gen-icon.mjs",
+    "pack:portable": "electron-builder --win portable",
+    "pack:dir": "electron-builder --win dir"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.gameremainder.app",
+    "productName": "游迹",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "renderer/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "portable": {
+      "artifactName": "游迹-便携版-${version}.exe"
+    }
+  }
+}

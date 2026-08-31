@@ -1,0 +1,70 @@
+<mxfile host="app.diagrams.net" modified="2025-01-01T00:00:00.000Z" agent="GameRemainder" version="24.0.0">
+  <diagram id="arch" name="系统架构">
+    <mxGraphModel dx="1300" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="游迹 GameRemainder · 系统架构" style="text;html=1;fontSize=18;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="renderer" value="渲染进程 renderer/（contextIsolation）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=13;fontStyle=1;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="360" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="r1" value="index.html + css/app.css&#10;（亚克力半透明层 · 无边框自绘标题栏）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="320" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="r2" value="js/ui.js　视图渲染 / 事件交互&#10;（今日待办 · 游戏视图 · 任务卡片 · 弹窗）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="186" width="320" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r3" value="js/store.js　状态 + 订阅 + 防抖保存" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="248" width="320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r4" value="js/model.js　纯函数领域逻辑（可单测）&#10;周期键 / 完成判定 / 到期倒计时 / 统计" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="298" width="320" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="preload" value="preload.cjs&#10;contextBridge&#10;window.api（安全 IPC）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="450" y="200" width="140" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="main" value="Electron 主进程 main.cjs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontSize=13;fontStyle=1;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="340" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" value="BrowserWindow&#10;alwaysOnTop 悬浮置顶 · 无边框&#10;Win11 backgroundMaterial:&quot;acrylic&quot;（Win10 透明+backdrop-filter）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="660" y="120" width="300" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="m2" value="系统托盘 / 开机自启 / 全局快捷键" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="660" y="196" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m3" value="IPC handlers&#10;data:load/save · export/import · window:*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="660" y="246" width="300" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="m4" value="原子写盘：tmp 写入 + rename 替换" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="660" y="308" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data" value="userData/data.json&#10;（游戏 / 任务 / 完成记录）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="200" width="180" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=blockThin;" edge="1" parent="1" source="renderer" target="preload">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1l" value="window.api" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e1">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=blockThin;" edge="1" parent="1" source="preload" target="main">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2l" value="ipcRenderer.invoke" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e2">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=blockThin;" edge="1" parent="1" source="main" target="data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3l" value="fs 原子写" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e3">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="note" value="验证闭环：npm test（模型单测）→ npm run smoke（冒烟自检）→ npm run shots（截图验证）" style="text;html=1;fontSize=12;fontStyle=2;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="700" height="26" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
