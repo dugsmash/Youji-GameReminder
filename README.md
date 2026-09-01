@@ -1,4 +1,4 @@
-# GameRemainder
+# Youji-GameReminder
 
 **[English](README.md) | [中文](README_CN.md)**
 
@@ -15,7 +15,7 @@
 
 ## Introduction
 
-GameRemainder is a **lightweight**, **fully offline** desktop tracker for people playing several games at once. You add a game, fill in its tasks — dailies, weeklies, main story, limited-time events — and the app floats on top of your desktop as a small frosted-glass window. Each game is strictly isolated, daily/weekly tasks auto-reset at the times your game actually resets, and the **Today** view ranks your games by the soonest expiring event, so you always see what you haven't done first.
+Youji-GameReminder is a **lightweight**, **fully offline** desktop tracker for people playing several games at once. You add a game, fill in its tasks — dailies, weeklies, main story, limited-time events — and the app floats on top of your desktop as a small frosted-glass window. Each game is strictly isolated, daily/weekly tasks auto-reset at the times your game actually resets, and the **Today** view ranks your games by the soonest expiring event, so you always see what you haven't done first.
 
 Everything is stored in a local JSON file. No accounts, no cloud, no telemetry.
 
