@@ -1035,6 +1035,35 @@ export function initUI(store, api) {
 
     $('#btn-add-game').addEventListener('click', () => openGameModal());
 
+    // 自绘窗口缩放手柄（无边框+透明窗口无系统缩放手柄）
+    const rzRoot = $('#resize-handles');
+    if (rzRoot) {
+      let resizing = false;
+      let rzRaf = 0;
+      rzRoot.addEventListener('mousedown', (e) => {
+        const zone = e.target.closest('.rz');
+        if (!zone || e.button !== 0) return;
+        e.preventDefault();
+        resizing = true;
+        api.winResizeStart(zone.dataset.dir);
+        document.body.classList.add('win-resizing');
+      });
+      document.addEventListener('mousemove', () => {
+        if (!resizing || rzRaf) return;
+        rzRaf = requestAnimationFrame(() => {
+          rzRaf = 0;
+          api.winResizeMove();
+        });
+      });
+      document.addEventListener('mouseup', () => {
+        if (!resizing) return;
+        resizing = false;
+        if (rzRaf) { cancelAnimationFrame(rzRaf); rzRaf = 0; }
+        api.winResizeEnd();
+        document.body.classList.remove('win-resizing');
+      });
+    }
+
     // 侧栏宽度拖拽（分隔条）
     const resizer = $('#sidebar-resizer');
     if (resizer) {

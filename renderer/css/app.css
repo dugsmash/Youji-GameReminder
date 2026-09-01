@@ -67,6 +67,8 @@ html, body {
    标题栏
    ============================================================ */
 #titlebar {
+  position: relative;
+  z-index: 35; /* 高于缩放手柄(z-30)：标题栏按钮与拖拽优先 */
   height: var(--titlebar-h);
   min-height: var(--titlebar-h);
   display: flex;
@@ -141,6 +143,7 @@ html, body {
 #sidebar-resizer:hover::after, #sidebar-resizer:active::after,
 body.resizing #sidebar-resizer::after { background: rgba(108, 142, 245, 0.75); }
 body.resizing { cursor: col-resize; user-select: none; }
+body.win-resizing { user-select: none; }
 
 /* 侧栏收起：宽度归零、隐藏分隔条，内容区/背景层占满 */
 body.sidebar-collapsed #sidebar {
@@ -723,8 +726,18 @@ select option { background: #20232d; color: var(--text); }
   white-space: nowrap;
 }
 body.passthrough #passthrough-badge { display: block; }
-/* 穿透时整体轻微淡化，提示当前为穿透态 */
-body.passthrough #app { opacity: 0.72; }
+
+/* 自绘缩放手柄（无边框+透明窗口无系统缩放手柄，拖边缘/角落调整窗口大小） */
+#resize-handles { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+#resize-handles .rz { position: fixed; pointer-events: auto; }
+.rz-n  { top: 0; left: 14px; right: 14px; height: 5px; cursor: ns-resize; }
+.rz-s  { bottom: 0; left: 14px; right: 14px; height: 5px; cursor: ns-resize; }
+.rz-e  { right: 0; top: 14px; bottom: 14px; width: 5px; cursor: ew-resize; }
+.rz-w  { left: 0; top: 14px; bottom: 14px; width: 5px; cursor: ew-resize; }
+.rz-ne { top: 0; right: 0; width: 16px; height: 16px; cursor: nesw-resize; }
+.rz-nw { top: 0; left: 0; width: 16px; height: 16px; cursor: nwse-resize; }
+.rz-se { bottom: 0; right: 0; width: 16px; height: 16px; cursor: nwse-resize; }
+.rz-sw { bottom: 0; left: 0; width: 16px; height: 16px; cursor: nesw-resize; }
 
 /* 设置页快捷键徽标 */
 .badge.kbd {

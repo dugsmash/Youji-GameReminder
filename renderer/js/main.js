@@ -378,6 +378,7 @@ async function runSmoke() {
   await new Promise((r) => setTimeout(r, 80));
   check('穿透: 按钮开启后窗口忽略鼠标点击', (await api.winGetPassthrough()) === true);
   check('穿透: 界面显示穿透标识', document.body.classList.contains('passthrough'));
+  check('穿透: 不改变界面透明度(维持设置值)', getComputedStyle(document.querySelector('#app')).opacity === '1');
   ptBtn.click();
   await new Promise((r) => setTimeout(r, 60));
   check('穿透: 按钮关闭后恢复鼠标交互', (await api.winGetPassthrough()) === false);
@@ -414,6 +415,22 @@ async function runSmoke() {
     const domNames = [...document.querySelectorAll('.game-item .nav-label')].map((e) => e.textContent);
     check('侧栏: DOM 顺序与数据一致', domNames[0] === '游戏B' && domNames[1] === '游戏A');
   }
+
+  // 26. 窗口尺寸调整（无边框+透明窗口 → 自绘缩放手柄）
+  const rzCount = document.querySelectorAll('#resize-handles .rz').length;
+  check('窗口: 8 个方向缩放手柄存在', rzCount === 8);
+  const boundsBefore = await api.winGetBounds();
+  const resized = await api.winSetBounds({ width: boundsBefore.width + 60, height: boundsBefore.height + 40 });
+  await new Promise((r) => setTimeout(r, 100));
+  const boundsAfter = await api.winGetBounds();
+  // Windows 无边框透明窗口有 ±2px 隐形边框偏移，用 ±3px 容差
+  const okW = Math.abs(boundsAfter.width - (boundsBefore.width + 60)) <= 3;
+  const okH = Math.abs(boundsAfter.height - (boundsBefore.height + 40)) <= 3;
+  check('窗口: 尺寸可调整(宽+60 高+40 ±3px)', Boolean(resized && okW && okH));
+  await api.winSetBounds({ width: boundsBefore.width, height: boundsBefore.height });
+  await new Promise((r) => setTimeout(r, 80));
+  const boundsRestored = await api.winGetBounds();
+  check('窗口: 尺寸可恢复(±3px)', Math.abs(boundsRestored.width - boundsBefore.width) <= 3 && Math.abs(boundsRestored.height - boundsBefore.height) <= 3);
 
   const ok = checks.every((c) => c.pass);
   const d = store.get();

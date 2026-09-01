@@ -309,6 +309,47 @@ function registerIpc() {
   ipcMain.handle('window:shortcut:setPassthrough', (_e, accel) => registerPassthroughShortcut(accel));
   ipcMain.handle('window:close', () => { win?.hide(); return true; });
 
+  // ---------- 窗口尺寸（无边框+透明窗口无系统缩放手柄 → 渲染层自绘手柄拖拽） ----------
+
+  const MIN_W = 380, MIN_H = 560; // 与 createWindow 保持一致
+
+  /** 应用新 bounds 并夹取最小尺寸 */
+  function applyBounds(b) {
+    if (!win) return null;
+    const cur = win.getBounds();
+    const width = Math.max(MIN_W, Math.round(b.width ?? cur.width));
+    const height = Math.max(MIN_H, Math.round(b.height ?? cur.height));
+    const x = (b.x ?? cur.x), y = (b.y ?? cur.y);
+    win.setBounds({ x, y, width, height });
+    return win.getBounds();
+  }
+
+  let resizeState = null; // 拖拽缩放会话
+  ipcMain.handle('window:getBounds', () => (win ? win.getBounds() : null));
+  ipcMain.handle('window:setBounds', (_e, b) => (b && win ? applyBounds(b) : null));
+  ipcMain.handle('window:resize:start', (_e, dir) => {
+    if (!win) return null;
+    resizeState = { dir: String(dir || ''), startMouse: screen.getCursorScreenPoint(), startBounds: win.getBounds() };
+    return resizeState.startBounds;
+  });
+  ipcMain.handle('window:resize:move', () => {
+    if (!win || !resizeState) return null;
+    const { dir, startMouse, startBounds } = resizeState;
+    const cur = screen.getCursorScreenPoint();
+    const dx = cur.x - startMouse.x, dy = cur.y - startMouse.y;
+    let { x, y, width, height } = startBounds;
+    if (dir.includes('e')) width = startBounds.width + dx;
+    if (dir.includes('s')) height = startBounds.height + dy;
+    if (dir.includes('w')) { x = startBounds.x + dx; width = startBounds.width - dx; }
+    if (dir.includes('n')) { y = startBounds.y + dy; height = startBounds.height - dy; }
+    // 最小尺寸夹取（西/北向缩放时同步修正原点）
+    if (width < MIN_W) { if (dir.includes('w')) x = startBounds.x + startBounds.width - MIN_W; width = MIN_W; }
+    if (height < MIN_H) { if (dir.includes('n')) y = startBounds.y + startBounds.height - MIN_H; height = MIN_H; }
+    win.setBounds({ x, y, width, height });
+    return win.getBounds();
+  });
+  ipcMain.handle('window:resize:end', () => { resizeState = null; return true; });
+
   ipcMain.handle('app:autostart:get', () => app.getLoginItemSettings().openAtLogin);
   ipcMain.handle('app:autostart:set', (_e, v) => {
     app.setLoginItemSettings({ openAtLogin: Boolean(v) });
