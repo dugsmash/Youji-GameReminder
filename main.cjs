@@ -479,31 +479,31 @@ async function runShots() {
     console.log('[shots] AUDIT(' + name + ')', JSON.stringify(a));
   };
 
-  await shot('01-今日待办');
-  await audit('01-今日待办');
+  await shot('01-today');
+  await audit('01-today');
 
   // 切换到游戏视图（先注入演示背景，展示"背景图 + 模糊"效果）
   await win.webContents.executeJavaScript(`window.__setDemoBackground && window.__setDemoBackground()`, true);
   await sleep(400);
   await win.webContents.executeJavaScript(`window.__gotoGame && window.__gotoGame()`, true);
   await sleep(400);
-  await shot('02-游戏视图');
-  await audit('02-游戏视图');
+  await shot('02-game-view');
+  await audit('02-game-view');
 
   // 打开添加任务弹窗
   await win.webContents.executeJavaScript(`window.__openAddTask && window.__openAddTask()`, true);
   await sleep(300);
-  await shot('03-添加任务弹窗');
+  await shot('03-add-task');
 
   // 全局背景视图（未单独设置背景的游戏 → 使用全局背景）
   await win.webContents.executeJavaScript(`window.__gotoGameByIndex && window.__gotoGameByIndex(1)`, true);
   await sleep(400);
-  await shot('06-全局背景视图');
+  await shot('06-global-background');
 
   // 设置页（展示全局背景设置区块）
   await win.webContents.executeJavaScript(`window.__gotoSettings && window.__gotoSettings()`, true);
   await sleep(400);
-  await shot('07-设置页');
+  await shot('07-settings');
 
   // 桌面级截图（验证毛玻璃真实效果：窗口背后的桌面被模糊）
   try {
@@ -514,8 +514,8 @@ async function runShots() {
     const src = sources.find((s) => s.display_id === String(primary.id)) || sources[0];
     if (src && !src.thumbnail.isEmpty()) {
       // 全屏原始图（供像素级模糊验证：窗内外对比）
-      fs.writeFileSync(path.join(outDir, '05-桌面全景.png'), src.thumbnail.toPNG());
-      console.log('[shots] 已保存 05-桌面全景.png');
+      fs.writeFileSync(path.join(outDir, '05-desktop-full.png'), src.thumbnail.toPNG());
+      console.log('[shots] 已保存 05-desktop-full.png');
       const tw = src.thumbnail.getSize().width;
       const scale = tw / width;
       const crop = {
@@ -525,8 +525,8 @@ async function runShots() {
         height: Math.round(bounds.height * scale),
       };
       const cropped = src.thumbnail.crop(crop);
-      fs.writeFileSync(path.join(outDir, '04-桌面毛玻璃实拍.png'), cropped.toPNG());
-      console.log('[shots] 已保存 04-桌面毛玻璃实拍.png');
+      fs.writeFileSync(path.join(outDir, '04-desktop-glass.png'), cropped.toPNG());
+      console.log('[shots] 已保存 04-desktop-glass.png');
     }
   } catch (e) {
     console.error('[shots] 桌面截图失败(不影响其他截图):', e.message);

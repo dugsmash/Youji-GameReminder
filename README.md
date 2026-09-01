@@ -15,7 +15,7 @@
 
 ## Introduction
 
-GameRemainder (游迹) is a lightweight, **fully offline** desktop tracker for people playing several games at once. You add a game, fill in its tasks — dailies, weeklies, main story, limited-time events — and the app floats on top of your desktop as a small frosted-glass window. Each game is strictly isolated, daily/weekly tasks auto-reset at the times your game actually resets (e.g. 04:00), and the **Today** view ranks your games by the soonest expiring event, so you always see what you haven't done first.
+GameRemainder is a **lightweight**, **fully offline** desktop tracker for people playing several games at once. You add a game, fill in its tasks — dailies, weeklies, main story, limited-time events — and the app floats on top of your desktop as a small frosted-glass window. Each game is strictly isolated, daily/weekly tasks auto-reset at the times your game actually resets, and the **Today** view ranks your games by the soonest expiring event, so you always see what you haven't done first.
 
 Everything is stored in a local JSON file. No accounts, no cloud, no telemetry.
 
@@ -27,7 +27,7 @@ Everything is stored in a local JSON file. No accounts, no cloud, no telemetry.
 
 | Feature | Description |
 |---|---|
-| **Always-on-top floating window** | Stays above other windows, including fullscreen games (periodic topmost re-assert); 📌 toggle / `Ctrl+Shift+P`; closes to the system tray and keeps running |
+| **Always-on-top floating window** | Stays above other windows, including fullscreen games (periodic topmost re-assert); pin toggle / `Ctrl+Shift+P`; closing hides it to the system tray and it keeps running |
 | **Frosted-glass look, stable color** | Transparent window + CSS `backdrop-filter` blur. Color is fully CSS-controlled — it does **not** change when you click inside or outside the window (system Acrylic was dropped for this reason) |
 | **Multi-game isolation** | Games and their tasks never mix; drag items in the sidebar to reorder them; sidebar is collapsible and resizable |
 | **Four task types, auto reset** | Daily / Weekly / Main / Event. Daily & weekly reset at each game's configured reset hour and day; main/event stay checked until you uncheck them |
@@ -38,7 +38,7 @@ Everything is stored in a local JSON file. No accounts, no cloud, no telemetry.
 | **Window opacity** | 20%–100% in 1% steps, for less occlusion while gaming |
 | **7-day history dots** | Daily tasks show whether they were done on each of the last 7 days |
 | **Backgrounds & blur** | Per-game and global background images with adjustable blur |
-| **Local JSON storage** | Atomic writes to `userData/data.json`; export / import full backups anytime |
+| **Local JSON storage** | Atomic writes; export / import full backups anytime |
 | **Custom resize handles** | Frameless window — drag any edge or corner to resize |
 | **Global shortcuts** | `Ctrl+Shift+P` pin, `Ctrl+Shift+H` show/hide, `Ctrl+Shift++` click-through |
 
@@ -50,24 +50,27 @@ Everything is stored in a local JSON file. No accounts, no cloud, no telemetry.
 
 | Today | Game view | Add task |
 |---|---|---|
-| ![today](docs/screenshots/01-今日待办.png) | ![game](docs/screenshots/02-游戏视图.png) | ![add-task](docs/screenshots/03-添加任务弹窗.png) |
-
-| Settings | Frosted glass on desktop |
-|---|---|
-| ![settings](docs/screenshots/07-设置页.png) | ![glass](docs/screenshots/04-桌面毛玻璃实拍.png) |
+| ![today](docs/screenshots/01-today.png) | ![game](docs/screenshots/02-game-view.png) | ![add-task](docs/screenshots/03-add-task.png) |
 
 ---
 
 ## Getting Started
 
-### Desktop App
+### Install (end users)
+
+1. Download the latest installer from the **Releases** page.
+2. Run it and follow the setup wizard — choose an install directory; a desktop shortcut is created.
+3. First launch shows an empty dashboard; click **+ Add game** in the sidebar to start.
+4. Closing the window only hides it to the tray — use **Tray → Exit** to fully quit.
+
+### Build from source (developers)
 
 **Requirements**
 
 | Tool | Version |
 |---|---|
 | OS | Windows 10 / 11 |
-| Node.js | 18 or newer (for building from source) |
+| Node.js | 18 or newer |
 | npm | Bundled with Node.js |
 
 **Install dependencies**
@@ -96,22 +99,12 @@ npm test          # domain-model unit tests
 npm run smoke     # Electron smoke self-check (auto-exits with pass/fail)
 ```
 
-**Build the installer**
+**Build**
 
 ```bash
-npm run pack        # → dist/游迹-安装版-1.0.0.exe (NSIS installer)
-npm run pack:dir    # → dist/win-unpacked/ (unpacked directory, for testing)
+npm run pack       # → dist/游迹-1.0.0.exe (NSIS installer)
+npm run pack:dir   # → dist/win-unpacked/ (unpacked directory, for testing)
 ```
-
-> The build uses the locally installed Electron distribution (`electronDist`), so it works **offline** — no component download is needed.
-
-**Install / run**
-
-1. Run `dist/游迹-安装版-1.0.0.exe` and follow the setup wizard — choose an install directory, desktop shortcut is created.
-2. First launch shows an empty dashboard; click **＋ 添加游戏** in the sidebar to start.
-3. Close hides the window to the tray — use **托盘 → 退出** to fully quit.
-
-> For public distribution, attach the installer exe to a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) for one-click downloads.
 
 ---
 
@@ -119,22 +112,22 @@ npm run pack:dir    # → dist/win-unpacked/ (unpacked directory, for testing)
 
 ### First-run setup
 
-1. Click **＋ 添加游戏**, enter the game name and **upload a local image** as its icon (optional background image too).
-2. Set the game's **daily reset time** (most games reset at 04:00) and **weekly reset day**.
-3. Inside the game, click **＋ 添加任务** to add tasks. Pick the type: 每日 / 每周 / 主线 / 活动.
+1. Click **+ Add game**, enter the game name and **upload a local image** as its icon (an optional background image too).
+2. Set the game's **daily reset time** and **weekly reset day**.
+3. Inside the game, click **+ Add task** to add tasks. Pick the type: Daily / Weekly / Main / Event.
 4. For an **event**, set the deadline in one of two ways — pick a date, or type the number of **remaining days**.
 
 ### Daily usage
 
-- The **今日待办** view lists every unfinished task across all games. Games are ordered by their **soonest expiring activity**; within a game the order is 每日 → 每周 → 活动 → 主线, and events are sorted by remaining days.
+- The **Today** view lists every unfinished task across all games. Games are ordered by their **soonest expiring activity**; within a game the order is Daily → Weekly → Event → Main, and events are sorted by remaining days.
 - Click the circle to check off a task. Daily/weekly tasks flip back to "not done" automatically at the next reset; main/event tasks stay done until you uncheck them.
 - The sidebar dot shows each game's completion state: red = nothing done, yellow = dailies left, blue = only weeklies left, green = all done, gray = no daily/weekly tasks.
 
 ### While gaming
 
-- Press **`Ctrl+Shift++`** (or the 🖱 titlebar button) to make the window click-through — your mouse passes to the game while the tracker stays visible. Press again to restore. The hotkey is changeable in Settings → 穿透快捷键.
-- Enable **鼠标穿透** is the standard way to keep the tracker over a game; adjust **窗口透明度** to taste.
-- In fullscreen games the window keeps floating on top; if a game ever covers it, re-toggle 保持置顶 or use the tray.
+- Press **`Ctrl+Shift++`** (or the mouse titlebar button) to make the window click-through — your mouse passes to the game while the tracker stays visible. Press again to restore. The hotkey is changeable in Settings → Passthrough shortcut.
+- Enabling **Mouse passthrough** is the standard way to keep the tracker over a game; adjust **Window opacity** to taste.
+- In fullscreen games the window keeps floating on top; if a game ever covers it, re-toggle always-on-top or use the tray.
 
 ### Shortcuts
 
@@ -147,22 +140,22 @@ npm run pack:dir    # → dist/win-unpacked/ (unpacked directory, for testing)
 
 ### Data & backup
 
-All data lives in one JSON file — open it from Settings → 本地存储 → 打开目录. Use **导出** / **导入** to back up or move your data. There is **no cloud sync**; uninstalling or deleting the file removes everything, so export a backup before reinstalling.
+All data lives in one JSON file — open it from Settings → Local storage → Open folder. Use **Export** / **Import** to back up or move your data. There is **no cloud sync**; uninstalling or deleting the file removes everything, so export a backup before reinstalling.
 
 ---
 
 ## Privacy and Security
 
 - **100% offline** — the app makes no network requests. No accounts, no cloud, no ads, no analytics, no tracking SDKs.
-- **All data stays on your machine** in a local JSON file (`%APPDATA%\游迹 · 游戏任务记录器\data.json`).
+- **All data stays on your machine** in a local JSON file inside the app's data directory (see Settings → Local storage → Open folder).
 - **Backups are yours** — export produces a plain JSON you can inspect, version, or restore.
-- **No permissions required** beyond what a desktop app normally uses (startup registration is optional and off by default).
+- **No special permissions** — startup registration is optional and off by default.
 
 ---
 
 ## Disclaimer
 
-This is an independent utility project. It is not affiliated with, endorsed by, or connected to any game company. All game names, item names and trademarks belong to their respective owners; game schedules (reset times, event deadlines) may change at any time — always verify in game. Screenshots in this README use sample data. This project is provided for communication and personal-use purposes only.
+This is an independent personal tool project, not affiliated with any game company. Screenshots in this README use sample data. This project is provided for communication and personal-use purposes only.
 
 ---
 

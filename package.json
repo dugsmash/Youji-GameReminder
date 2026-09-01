@@ -43,7 +43,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "artifactName": "游迹-安装版-${version}.exe"
+      "artifactName": "游迹-${version}.exe"
     }
   }
 }
