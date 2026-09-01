@@ -1,6 +1,6 @@
 // ============================================================
 // 游迹 GameRemainder · Electron 主进程（CommonJS）
-// 悬浮置顶 + 亚克力材质 + 系统托盘 + 原子写盘 + 冒烟/截图模式
+// 悬浮置顶 + 透明毛玻璃(CSS 模糊) + 系统托盘 + 原子写盘 + 冒烟/截图模式
 // ============================================================
 const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell, screen, desktopCapturer, globalShortcut, nativeImage } = require('electron');
 const path = require('node:path');
@@ -100,9 +100,9 @@ function createWindow() {
       spellcheck: false,
     },
   };
-  // 亚克力：Win11 用系统材质；其余回退透明窗口 + CSS backdrop-filter
-  if (IS_WIN11) opts.backgroundMaterial = 'acrylic';
-  else opts.transparent = true;
+  // 透明窗口 + CSS backdrop-filter 高斯模糊（不用系统亚克力：
+  // 系统亚克力会随窗口焦点在"激活/非激活"间切换色调——点击界面外部时颜色变化）
+  opts.transparent = true;
 
   win = new BrowserWindow(opts);
   win.setMenuBarVisibility(false);
@@ -235,7 +235,7 @@ function registerIpc() {
     osBuild: OS_BUILD,
     electron: process.versions.electron,
     userData: app.getPath('userData'),
-    acrylicSupported: IS_WIN11,
+    acrylicSupported: false, // 已弃用系统亚克力（焦点切换会变色），改用 CSS 高斯模糊
     passthroughShortcut: passthroughAccel || DEFAULT_PASSTHROUGH_SHORTCUT,
   }));
 
@@ -297,10 +297,6 @@ function registerIpc() {
     const o = Math.max(0.2, Math.min(1, Number(v) || 1));
     if (win) win.setOpacity(o);
     return o;
-  });
-  ipcMain.handle('window:setFocusable', (_e, v) => {
-    if (win) win.setFocusable(Boolean(v));
-    return Boolean(v);
   });
   ipcMain.handle('window:passthrough:set', (_e, p) => {
     const changed = Boolean(p) !== desiredPassthrough;
@@ -399,17 +395,16 @@ async function runShots() {
   const posY = Math.max(y + 60, y);
 
   win = new BrowserWindow({
-    width: W, height: H, frame: false, show: false,
+    width: W, height: H, frame: false, show: false, transparent: true,
     resizable: true, x: posX, y: posY,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false },
   });
   win.setAlwaysOnTop(true);
   win.on('show', () => win.setAlwaysOnTop(desiredPin));
-  if (IS_WIN11) win.setBackgroundMaterial('acrylic');
   await win.loadFile(path.join(__dirname, 'renderer', 'index.html'), { query: { shots: '1' } });
   win.show();
   await sleep(1200);
-  console.log('[shots] acrylicSet =', IS_WIN11, '· alwaysOnTop =', win.isAlwaysOnTop(), '· visible =', win.isVisible());
+  console.log('[shots] alwaysOnTop =', win.isAlwaysOnTop(), '· visible =', win.isVisible());
 
   const outDir = path.join(__dirname, 'docs', 'screenshots');
   fs.mkdirSync(outDir, { recursive: true });
@@ -469,7 +464,7 @@ async function runShots() {
   await sleep(400);
   await shot('07-设置页');
 
-  // 桌面级截图（验证亚克力真实效果：窗口背后的桌面被模糊）
+  // 桌面级截图（验证毛玻璃真实效果：窗口背后的桌面被模糊）
   try {
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
@@ -477,7 +472,7 @@ async function runShots() {
     });
     const src = sources.find((s) => s.display_id === String(primary.id)) || sources[0];
     if (src && !src.thumbnail.isEmpty()) {
-      // 全屏原始图（供像素级亚克力验证：窗内外对比）
+      // 全屏原始图（供像素级模糊验证：窗内外对比）
       fs.writeFileSync(path.join(outDir, '05-桌面全景.png'), src.thumbnail.toPNG());
       console.log('[shots] 已保存 05-桌面全景.png');
       const tw = src.thumbnail.getSize().width;
@@ -489,8 +484,8 @@ async function runShots() {
         height: Math.round(bounds.height * scale),
       };
       const cropped = src.thumbnail.crop(crop);
-      fs.writeFileSync(path.join(outDir, '04-桌面亚克力实拍.png'), cropped.toPNG());
-      console.log('[shots] 已保存 04-桌面亚克力实拍.png');
+      fs.writeFileSync(path.join(outDir, '04-桌面毛玻璃实拍.png'), cropped.toPNG());
+      console.log('[shots] 已保存 04-桌面毛玻璃实拍.png');
     }
   } catch (e) {
     console.error('[shots] 桌面截图失败(不影响其他截图):', e.message);

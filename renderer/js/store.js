@@ -47,8 +47,6 @@ export function createStore(api) {
     // 应用持久化的鼠标穿透状态与快捷键（默认 Ctrl+Shift++）
     try { await api.winSetPassthroughShortcut(data.settings.passthroughShortcut || 'CommandOrControl+Shift+='); } catch { /* noop */ }
     try { await api.winSetPassthrough(Boolean(data.settings.passthrough)); } catch { /* noop */ }
-    // 应用"点击不激活窗口"设置
-    try { await api.winSetFocusable(!Boolean(data.settings.noActivate)); } catch { /* noop */ }
     notify();
   }
 
@@ -201,14 +199,14 @@ export function createStore(api) {
     scheduleSave();
   }
 
-  /** 窗口点击是否激活（false=点击不激活窗口，避免亚克力变色） */
-  async function setNoActivate(v) {
-    const p = Boolean(v);
-    data = { ...data, settings: { ...data.settings, noActivate: p } };
-    scheduleSave();
-    try { await api.winSetFocusable(!p); } catch { /* noop */ }
-    notify();
-    return p;
+  /** 侧边栏拖拽排序：按给定 id 顺序重排游戏并重写 sortOrder */
+  function reorderGames(orderedIds) {
+    const byId = new Map(data.games.map((g) => [g.id, g]));
+    const next = [];
+    for (const id of orderedIds || []) { const g = byId.get(id); if (g) next.push(g); }
+    for (const g of data.games) if (!next.includes(g)) next.push(g); // 兜底：保留遗漏项
+    data = { ...data, games: next.map((g, i) => ({ ...g, sortOrder: i })) };
+    scheduleSave(); notify();
   }
 
   // ---------- 数据工具 ----------
@@ -243,10 +241,10 @@ export function createStore(api) {
 
   return {
     get, getInfo, getAutoStart, subscribe, init,
-    addGame, updateGame, deleteGame,
+    addGame, updateGame, deleteGame, reorderGames,
     addTask, updateTask, deleteTask, toggleTask,
     setPin, setAutoStart, setSettings, setSettingsSilent, setOpacity,
-    setPassthrough, setPassthroughShortcut, setNoActivate,
+    setPassthrough, setPassthroughShortcut,
     exportData, importData, clearAll, openDataDir,
     tidy,
   };

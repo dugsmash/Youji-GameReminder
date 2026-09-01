@@ -2,7 +2,7 @@
   "name": "game-remainder",
   "productName": "游迹 · 游戏任务记录器",
   "version": "1.0.0",
-  "description": "面向 PC 的悬浮置顶游戏任务记录器：多游戏隔离，每日/每周/主线/活动任务一键勾选，亚克力材质窗口。",
+  "description": "面向 PC 的悬浮置顶游戏任务记录器：多游戏隔离，每日/每周/主线/活动任务一键勾选，透明毛玻璃窗口。",
   "type": "module",
   "main": "main.cjs",
   "author": "GameRemainder",

@@ -14,9 +14,6 @@ const api = window.api;
 const store = createStore(api);
 await store.init();
 
-// Win10 等不支持系统亚克力时，启用 CSS backdrop-filter 回退
-if (!store.getInfo()?.isWin11) document.body.classList.add('fallback-blur');
-
 const ui = initUI(store, api);
 ui.renderAll();
 
@@ -384,7 +381,7 @@ async function runSmoke() {
   ptBtn.click();
   await new Promise((r) => setTimeout(r, 60));
   check('穿透: 按钮关闭后恢复鼠标交互', (await api.winGetPassthrough()) === false);
-  const scRes = await api.winSetPassthroughShortcut('CommandOrControl+Shift+=');
+  const scRes = await api.winSetPassthroughShortcut('CommandOrControl+Alt+9');
   check('快捷键: 自定义穿透快捷键注册成功', Boolean(scRes && scRes.ok));
 
   // 23. 侧栏收起按钮位于标题栏左侧
@@ -396,8 +393,27 @@ async function runSmoke() {
   const opInput = document.querySelector('#gs-opacity');
   check('透明度: 滑块支持 1% 微调', Boolean(opInput && opInput.step === '1' && opInput.min === '20'));
   check('快捷键: 设置页展示穿透快捷键徽标与修改按钮', Boolean(document.querySelector('#pt-shortcut') && document.querySelector('#pt-record')));
-  check('设置: 点击不激活窗口开关存在', Boolean(document.querySelector('#sw-noactivate')));
   check('设置: 示例数据入口已移除', !document.querySelector('[data-action="load-sample"]'));
+  check('设置: 材质显示为毛玻璃(无系统亚克力文案)', Boolean(document.querySelector('.setting-row .badge') && ![...document.querySelectorAll('.setting-row')].some((r) => r.textContent.includes('亚克力'))));
+
+  // 25. 侧栏游戏拖拽排序（HTML5 DnD 合成事件）
+  const orderBefore = store.get().games.map((g) => g.id);
+  const gi = [...document.querySelectorAll('.game-item')];
+  const srcItem = gi.find((el) => el.dataset.id === orderBefore[1]); // 游戏B
+  const dstItem = gi.find((el) => el.dataset.id === orderBefore[0]); // 游戏A
+  check('侧栏: 游戏项可拖拽(draggable)', gi.every((el) => el.draggable));
+  if (srcItem && dstItem) {
+    srcItem.dispatchEvent(new DragEvent('dragstart', { bubbles: true }));
+    const rect = dstItem.getBoundingClientRect();
+    dstItem.dispatchEvent(new DragEvent('dragover', { bubbles: true, clientY: rect.top + 4 }));
+    dstItem.dispatchEvent(new DragEvent('drop', { bubbles: true }));
+    srcItem.dispatchEvent(new DragEvent('dragend', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 100));
+    const orderAfter = store.get().games.map((g) => g.id);
+    check('侧栏: 拖拽游戏B到游戏A前 → 顺序改变', orderAfter[0] === orderBefore[1] && orderAfter[1] === orderBefore[0]);
+    const domNames = [...document.querySelectorAll('.game-item .nav-label')].map((e) => e.textContent);
+    check('侧栏: DOM 顺序与数据一致', domNames[0] === '游戏B' && domNames[1] === '游戏A');
+  }
 
   const ok = checks.every((c) => c.pass);
   const d = store.get();

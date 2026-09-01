@@ -203,7 +203,7 @@ export function initUI(store, api) {
         ? `<span class="g-thumb ${status.level}" title="${STATUS_HINT[status.level]}">${iconThumbInner(g)}</span>`
         : `<span class="g-dot ${status.level}" title="${STATUS_HINT[status.level]}"></span>`;
       return `
-      <button class="nav-item game-item ${state.view === 'game' && state.activeGameId === g.id ? 'active' : ''}" data-action="open-game" data-id="${g.id}" title="${esc(g.name)}（${STATUS_HINT[status.level]}）">
+      <button class="nav-item game-item ${state.view === 'game' && state.activeGameId === g.id ? 'active' : ''}" data-action="open-game" data-id="${g.id}" draggable="true" title="${esc(g.name)}（${STATUS_HINT[status.level]}）· 拖拽可调整顺序">
         ${lead}
         <span class="nav-label">${esc(g.name)}</span>
         ${chips[g.id] ? `<span class="nav-badge">${chips[g.id]}</span>` : ''}
@@ -443,7 +443,6 @@ export function initUI(store, api) {
     const info = store.getInfo() || {};
     const data = store.get();
     const auto = store.getAutoStart();
-    const acrylicOn = data.settings.acrylic !== false;
 
     content.innerHTML = `
       <div class="view-head">
@@ -461,8 +460,8 @@ export function initUI(store, api) {
           <label class="switch"><input type="checkbox" id="sw-pin" ${data.settings.pin ? 'checked' : ''}><span class="slider"></span></label>
         </div>
         <div class="setting-row">
-          <div class="s-label"><b>窗口材质</b><small>${info.isWin11 ? 'Windows 11 系统亚克力（Acrylic）已启用' : '当前系统不支持系统级亚克力，已使用透明窗口 + CSS 高斯模糊'}</small></div>
-          <span class="badge ${acrylicOn ? '' : 'mode'}">${info.isWin11 ? '亚克力' : '模糊回退'}</span>
+          <div class="s-label"><b>窗口材质</b><small>透明毛玻璃（CSS 高斯模糊）· 颜色稳定，点击窗口内外均不变色</small></div>
+          <span class="badge">毛玻璃</span>
         </div>
         <div class="setting-row">
           <div class="s-label"><b>窗口透明度</b><small>调节悬浮窗整体不透明度，游戏内减少遮挡（20%–100%，可 1% 微调）</small></div>
@@ -479,10 +478,6 @@ export function initUI(store, api) {
           <div class="s-label"><b>穿透快捷键</b><small>点击「修改」后直接按下新按键组合（默认 Ctrl+Shift++）</small></div>
           <span class="badge kbd" id="pt-shortcut">${esc(humanizeAccel(data.settings.passthroughShortcut || DEFAULT_PT_SHORTCUT))}</span>
           <button class="btn ghost" id="pt-record">修改</button>
-        </div>
-        <div class="setting-row">
-          <div class="s-label"><b>点击不激活窗口</b><small>避免点击悬浮窗时亚克力颜色变化；开启后输入框可能无法输入（若出现请关闭）</small></div>
-          <label class="switch"><input type="checkbox" id="sw-noactivate" ${data.settings.noActivate ? 'checked' : ''}><span class="slider"></span></label>
         </div>
         <div class="setting-row">
           <div class="s-label"><b>开机自启</b><small>登录系统后自动启动并悬浮</small></div>
@@ -543,7 +538,7 @@ export function initUI(store, api) {
       <div class="settings-block">
         <div class="settings-title">关于</div>
         <div class="setting-row">
-          <div class="s-label"><b>游迹 · 游戏任务记录器</b><small>悬浮置顶 · 亚克力材质 · 多游戏隔离</small></div>
+          <div class="s-label"><b>游迹 · 游戏任务记录器</b><small>悬浮置顶 · 毛玻璃 · 多游戏隔离</small></div>
           <span class="badge">v${esc(info.version || '1.0.0')}</span>
         </div>
         <div class="setting-row">
@@ -986,6 +981,58 @@ export function initUI(store, api) {
       handleAction(action, id, undefined, undefined, e);
     });
 
+    // 侧栏游戏拖拽排序（HTML5 DnD）
+    let dragGameId = null;
+    gameList.addEventListener('dragstart', (e) => {
+      const item = e.target.closest('.game-item');
+      if (!item) return;
+      dragGameId = item.dataset.id;
+      item.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', dragGameId);
+      }
+    });
+    gameList.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      const item = e.target.closest('.game-item');
+      document.querySelectorAll('.game-item').forEach((el) => el.classList.remove('drag-over-before', 'drag-over-after'));
+      if (item && item.dataset.id !== dragGameId) {
+        const rect = item.getBoundingClientRect();
+        item._dropBefore = (e.clientY - rect.top) < rect.height / 2;
+        item.classList.add(item._dropBefore ? 'drag-over-before' : 'drag-over-after');
+      }
+    });
+    gameList.addEventListener('dragleave', (e) => {
+      if (!gameList.contains(e.relatedTarget)) {
+        document.querySelectorAll('.game-item').forEach((el) => el.classList.remove('drag-over-before', 'drag-over-after'));
+      }
+    });
+    gameList.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const target = e.target.closest('.game-item');
+      const clear = () => {
+        document.querySelectorAll('.game-item').forEach((el) => el.classList.remove('dragging', 'drag-over-before', 'drag-over-after'));
+        dragGameId = null;
+      };
+      if (!target || !dragGameId || target.dataset.id === dragGameId) return clear();
+      const ids = store.get().games.map((g) => g.id);
+      const from = ids.indexOf(dragGameId);
+      if (from < 0) return clear();
+      ids.splice(from, 1);
+      const to = ids.indexOf(target.dataset.id);
+      if (to < 0) return clear();
+      ids.splice(target._dropBefore ? to : to + 1, 0, dragGameId);
+      clear();
+      store.reorderGames(ids);
+      toast('游戏顺序已更新', 'ok');
+    });
+    gameList.addEventListener('dragend', () => {
+      document.querySelectorAll('.game-item').forEach((el) => el.classList.remove('dragging', 'drag-over-before', 'drag-over-after'));
+      dragGameId = null;
+    });
+
     $('#btn-add-game').addEventListener('click', () => openGameModal());
 
     // 侧栏宽度拖拽（分隔条）
@@ -1024,7 +1071,6 @@ export function initUI(store, api) {
       else if (e.target.id === 'sw-auto') store.setAutoStart(e.target.checked);
       else if (e.target.id === 'sw-sidebar') { store.setSettings({ sidebarCollapsed: e.target.checked }); renderAll(); }
       else if (e.target.id === 'sw-pt') store.setPassthrough(e.target.checked);
-      else if (e.target.id === 'sw-noactivate') store.setNoActivate(e.target.checked);
       else if (e.target.id === 'gs-bg-file') {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
