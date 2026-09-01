@@ -96,22 +96,22 @@ npm test          # domain-model unit tests
 npm run smoke     # Electron smoke self-check (auto-exits with pass/fail)
 ```
 
-**Build a portable exe**
+**Build the installer**
 
 ```bash
-npm run pack:portable   # → dist/游迹-便携版-1.0.0.exe (single file, no install)
-npm run pack:dir        # → dist/win-unpacked/ (unpacked directory)
+npm run pack        # → dist/游迹-安装版-1.0.0.exe (NSIS installer)
+npm run pack:dir    # → dist/win-unpacked/ (unpacked directory, for testing)
 ```
 
 > The build uses the locally installed Electron distribution (`electronDist`), so it works **offline** — no component download is needed.
 
 **Install / run**
 
-1. Double-click `dist/游迹-便携版-1.0.0.exe` — it runs directly, no installation.
+1. Run `dist/游迹-安装版-1.0.0.exe` and follow the setup wizard — choose an install directory, desktop shortcut is created.
 2. First launch shows an empty dashboard; click **＋ 添加游戏** in the sidebar to start.
 3. Close hides the window to the tray — use **托盘 → 退出** to fully quit.
 
-> For public distribution, attach the portable exe to a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) for one-click downloads.
+> For public distribution, attach the installer exe to a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) for one-click downloads.
 
 ---
 

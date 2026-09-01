@@ -13,7 +13,7 @@
     "shots": "electron . --shots",
     "test": "node test/model.test.mjs",
     "icon": "node scripts/gen-icon.mjs",
-    "pack:portable": "electron-builder --win portable",
+    "pack": "electron-builder --win",
     "pack:dir": "electron-builder --win dir"
   },
   "devDependencies": {
@@ -35,7 +35,6 @@
     ],
     "win": {
       "target": [
-        "portable",
         "nsis"
       ],
       "icon": "assets/icon.ico"
@@ -43,10 +42,8 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
-    },
-    "portable": {
-      "artifactName": "游迹-便携版-${version}.exe"
+      "createDesktopShortcut": true,
+      "artifactName": "游迹-安装版-${version}.exe"
     }
   }
 }

@@ -96,22 +96,22 @@ npm test          # 领域模型单元测试
 npm run smoke     # Electron 冒烟自检（自动退出并给出通过/失败结果）
 ```
 
-**打包便携版**
+**打包安装版**
 
 ```bash
-npm run pack:portable   # → dist/游迹-便携版-1.0.0.exe（单文件，免安装）
-npm run pack:dir        # → dist/win-unpacked/（免安装目录）
+npm run pack        # → dist/游迹-安装版-1.0.0.exe（NSIS 安装程序）
+npm run pack:dir    # → dist/win-unpacked/（免安装目录，供调试）
 ```
 
 > 打包使用本地已安装的 Electron 发行版（`electronDist`），**断网也能构建**，无需下载组件。
 
-**运行**
+**安装运行**
 
-1. 双击 `dist/游迹-便携版-1.0.0.exe` 即可直接运行，无需安装。
+1. 运行 `dist/游迹-安装版-1.0.0.exe` 按向导安装（可自定义安装目录，自动创建桌面快捷方式）。
 2. 首次打开是空页面，点侧边栏「＋ 添加游戏」开始。
 3. 点关闭按钮只是收进托盘——用「托盘 → 退出」才能真正退出。
 
-> 公开发布时，建议把便携版 exe 挂到 [GitHub Releases](https://docs.github.com/zh/repositories/releasing-projects-on-github/managing-releases-in-a-repository) 供一键下载。
+> 公开发布时，建议把安装版 exe 挂到 [GitHub Releases](https://docs.github.com/zh/repositories/releasing-projects-on-github/managing-releases-in-a-repository) 供一键下载。
 
 ---
 
