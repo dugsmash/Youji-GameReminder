@@ -1,5 +1,5 @@
 // ============================================================
-// 游迹 GameRemainder · Electron 主进程（CommonJS）
+// 游迹 Youji-GameReminder · Electron 主进程（CommonJS）
 // 悬浮置顶 + 透明毛玻璃(CSS 模糊) + 系统托盘 + 原子写盘 + 冒烟/截图模式
 // ============================================================
 const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell, screen, globalShortcut, nativeImage } = require('electron');
@@ -509,7 +509,7 @@ if (!gotLock) {
   });
 
   app.whenReady().then(async () => {
-    app.setAppUserModelId('com.gameremainder.app');
+    app.setAppUserModelId('com.youjigamereminder.app');
     if (MODE_SHOTS) {
       registerIpc();
       await runShots();
