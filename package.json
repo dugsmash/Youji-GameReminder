@@ -23,6 +23,7 @@
   "build": {
     "appId": "com.gameremainder.app",
     "productName": "游迹",
+    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "dist"
     },

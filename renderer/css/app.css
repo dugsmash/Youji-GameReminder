@@ -105,6 +105,7 @@ body.fallback-blur #app {
 .tb-btn:hover { background: var(--panel-strong); color: var(--text); }
 .tb-close:hover { background: var(--danger); color: #fff; }
 .tb-btn.pinned { color: var(--accent); background: rgba(108, 142, 245, 0.18); }
+.tb-btn.pt-on { color: var(--cat-event); background: rgba(251, 191, 36, 0.22); }
 
 /* ============================================================
    布局：侧栏（可拖拽调宽）+ 分隔条 + 内容

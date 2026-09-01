@@ -44,9 +44,11 @@ export function createStore(api) {
     try { autostart = await api.autoStartGet(); } catch { autostart = false; }
     // 应用持久化的置顶状态
     try { await api.winSetPin(Boolean(data.settings.pin)); } catch { /* noop */ }
-    // 应用持久化的鼠标穿透状态与快捷键（默认 "+"）
-    try { await api.winSetPassthroughShortcut(data.settings.passthroughShortcut || 'Plus'); } catch { /* noop */ }
+    // 应用持久化的鼠标穿透状态与快捷键（默认 Ctrl+Shift++）
+    try { await api.winSetPassthroughShortcut(data.settings.passthroughShortcut || 'CommandOrControl+Shift+='); } catch { /* noop */ }
     try { await api.winSetPassthrough(Boolean(data.settings.passthrough)); } catch { /* noop */ }
+    // 应用"点击不激活窗口"设置
+    try { await api.winSetFocusable(!Boolean(data.settings.noActivate)); } catch { /* noop */ }
     notify();
   }
 
@@ -153,13 +155,13 @@ export function createStore(api) {
     return autostart;
   }
 
-  /** 窗口透明度（0.2–1），实时作用于悬浮窗 */
-  async function setOpacity(v) {
+  /** 窗口透明度（0.2–1），实时作用于悬浮窗；silent=true 时不触发重渲染（拖动时用） */
+  async function setOpacity(v, silent = false) {
     const o = Math.max(0.2, Math.min(1, Number(v) || 1));
     data = { ...data, settings: { ...data.settings, opacity: o } };
     scheduleSave();
     try { await api.winSetOpacity(o); } catch { /* noop */ }
-    notify();
+    if (!silent) notify();
     return o;
   }
 
@@ -193,6 +195,22 @@ export function createStore(api) {
     scheduleSave(); notify();
   }
 
+  /** 更新任意设置项，静默：不触发重渲染（用于拖动类控件防抖） */
+  function setSettingsSilent(patch) {
+    data = { ...data, settings: { ...data.settings, ...patch } };
+    scheduleSave();
+  }
+
+  /** 窗口点击是否激活（false=点击不激活窗口，避免亚克力变色） */
+  async function setNoActivate(v) {
+    const p = Boolean(v);
+    data = { ...data, settings: { ...data.settings, noActivate: p } };
+    scheduleSave();
+    try { await api.winSetFocusable(!p); } catch { /* noop */ }
+    notify();
+    return p;
+  }
+
   // ---------- 数据工具 ----------
 
   async function exportData() {
@@ -206,12 +224,6 @@ export function createStore(api) {
       scheduleSave(); notify();
     }
     return res;
-  }
-
-  async function loadSample() {
-    const { demoData } = await import('./model.js');
-    data = demoData();
-    scheduleSave(); notify();
   }
 
   async function clearAll() {
@@ -233,9 +245,9 @@ export function createStore(api) {
     get, getInfo, getAutoStart, subscribe, init,
     addGame, updateGame, deleteGame,
     addTask, updateTask, deleteTask, toggleTask,
-    setPin, setAutoStart, setSettings, setOpacity,
-    setPassthrough, setPassthroughShortcut,
-    exportData, importData, loadSample, clearAll, openDataDir,
+    setPin, setAutoStart, setSettings, setSettingsSilent, setOpacity,
+    setPassthrough, setPassthroughShortcut, setNoActivate,
+    exportData, importData, clearAll, openDataDir,
     tidy,
   };
 }

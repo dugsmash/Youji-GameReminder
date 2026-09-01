@@ -85,13 +85,45 @@ async function runSmoke() {
   const midDebug = [];
   const check = (name, pass, detail = '') => checks.push({ name, pass: Boolean(pass), detail });
 
+  // 冒烟专用数据构造（仅写入临时 userData，绝不触碰真实数据）
+  const m = await import('./model.js');
+  async function buildSmokeFixture() {
+    store.clearAll(); // 先清空（含检查 3 写入的持久化验证数据），保证 3 款游戏
+    const now = new Date();
+    const y = now.getFullYear(), mo = now.getMonth(), d = now.getDate();
+    const rel = (n) => { const x = new Date(y, mo, d); x.setDate(x.getDate() + n); return m.fmtDate(x); };
+    const dKey = (n) => `d:${rel(n)}`;
+    const lastWeekKey = (() => { const ws = m.weeklyStart(now, 4, 1); const x = new Date(ws); x.setDate(x.getDate() - 7); return `w:${m.fmtDate(x)}`; })();
+    const add = (gid, over) => {
+      const tsk = store.addTask(gid, over);
+      if (over.completions) store.updateTask(tsk.id, { completions: over.completions });
+      return tsk;
+    };
+    const mk = (name, due2, due3, mainNote = '') => {
+      const g = store.addGame({ name });
+      add(g.id, { title: `${name}-每日1`, category: 'daily', completions: { [dKey(0)]: now.getTime() } });
+      add(g.id, { title: `${name}-每日2`, category: 'daily' });
+      add(g.id, { title: `${name}-每日3`, category: 'daily' });
+      add(g.id, { title: `${name}-每周1`, category: 'weekly', completions: { [lastWeekKey]: now.getTime() } });
+      add(g.id, { title: `${name}-每周2`, category: 'weekly' });
+      add(g.id, { title: `${name}-主线1`, category: 'main', notes: mainNote });
+      add(g.id, { title: `${name}-主线2`, category: 'main' });
+      add(g.id, { title: `${name}-活动完成`, category: 'event', resetMode: 'daily', dueDate: rel(4), completions: { [dKey(0)]: now.getTime() } });
+      add(g.id, { title: `${name}-限时挑战`, category: 'event', dueDate: due2 });
+      add(g.id, { title: `${name}-过期活动`, category: 'event', dueDate: due3 });
+      return g;
+    };
+    mk('游戏A', rel(2), rel(-2), '需要火系角色'); // 最短剩余 -2（过期）→ 排最前
+    mk('游戏B', rel(6), rel(10));                 // 最短剩余 +6
+    mk('游戏C', rel(25), rel(30));                // 最短剩余 +25
+  }
+
   // 1. 页面结构
   check('DOM: #app 存在', document.getElementById('app'));
-  check('DOM: 标题栏按钮齐全', ['btn-pin', 'btn-min', 'btn-close'].every((id) => document.getElementById(id)));
+  check('DOM: 标题栏按钮齐全', ['btn-pin', 'btn-min', 'btn-close', 'btn-pt', 'btn-sidebar'].every((id) => document.getElementById(id)));
   check('DOM: 内容区已渲染', document.querySelector('#content').children.length > 0);
 
   // 2. 模型抽查（与 Node 单测同源逻辑）
-  const m = await import('./model.js');
   const t = (y, mo, d, h, mi = 0) => new Date(y, mo - 1, d, h, mi);
   check('模型: 每日周期键（4 点前属前一日）', m.dailyPeriodKey(t(2025, 6, 2, 3, 59), 4) === 'd:2025-06-01');
   check('模型: 每周周期键（周一 4 点前属上周）', m.weeklyPeriodKey(t(2025, 6, 2, 3, 59), 4, 1) === 'w:2025-05-26');
@@ -110,8 +142,8 @@ async function runSmoke() {
   check('存储: 游戏已持久化', reloaded.games.some((x) => x.id === g.id));
   check('存储: 任务已持久化', reloaded.tasks.some((x) => x.id === task.id && x.gameId === g.id));
 
-  // 4. 渲染：示例数据
-  await store.loadSample();
+  // 4. 渲染：测试数据
+  await buildSmokeFixture();
   ui.renderAll();
   await new Promise((r) => setTimeout(r, 120));
   check('渲染: 今日待办视图存在游戏卡片', document.querySelectorAll('.dash-game').length === 3);
@@ -119,7 +151,7 @@ async function runSmoke() {
   const firstGame = store.get().games[0];
   ui.goTo('game', firstGame.id);
   await new Promise((r) => setTimeout(r, 120));
-  check('渲染: 示例数据任务卡片 ≥ 10', document.querySelectorAll('.task-card').length >= 10);
+  check('渲染: 游戏视图任务卡片 = 10', document.querySelectorAll('.task-card').length === 10);
   check('渲染: 侧栏游戏列表 = 3', document.querySelectorAll('.game-item').length === 3);
   check('渲染: 分类区块 = 4', document.querySelectorAll('.cat-section').length === 4);
 
@@ -146,7 +178,7 @@ async function runSmoke() {
   const visibleTitles = [...document.querySelectorAll('.task-card .tc-title')].map((e) => e.textContent);
   check('交互: 侧栏点击进入游戏视图（4 个分类区块）', document.querySelectorAll('.cat-section').length === 4);
   check('交互: 游戏视图仅显示该游戏 10 个任务', visibleTitles.length === 10);
-  const others = ['每日实训', '声骸周本', '主线 · 潮汐之章', '每日任务'];
+  const others = ['游戏B-每日1', '游戏B-每周2', '游戏C-主线1', '游戏C-每日1'];
   check('交互: 不混入其他游戏的任务', !others.some((t) => visibleTitles.includes(t)));
 
   // 8. UI 添加任务（弹窗填写 → 保存）
@@ -194,7 +226,7 @@ async function runSmoke() {
   const dotLevels = [...document.querySelectorAll('.game-item .g-dot')].map((d) => d.className.replace('g-dot', '').trim());
   check('交互: 无自定义图标时显示状态圆点', dotLevels.length === store.get().games.length);
   check('交互: 圆点颜色均合法', dotLevels.every((l) => ['red', 'yellow', 'blue', 'green', 'gray'].includes(l)));
-  check('交互: 示例数据圆点为黄色（有每日未完成）', dotLevels.every((l) => l === 'yellow'));
+  check('交互: 测试数据圆点为黄色（有每日未完成）', dotLevels.every((l) => l === 'yellow'));
 
   // 11. 删除游戏（级联删任务 + 侧栏移除）
   const delGame = store.get().games[1];
@@ -273,19 +305,21 @@ async function runSmoke() {
   store.deleteGame(newGame.id);
 
   // 17. 游戏视图：活动按剩余天数排序（过期在前）
-  await store.loadSample();
+  await buildSmokeFixture();
   ui.renderAll();
   const evGame = store.get().games[0];
   ui.goTo('game', evGame.id);
   await new Promise((r) => setTimeout(r, 120));
   const eventSec = [...document.querySelectorAll('.cat-section')].find((s) => s.querySelector('.cat-name')?.textContent === '活动');
   const evTitles = eventSec ? [...eventSec.querySelectorAll('.task-card .tc-title')].map((e) => e.textContent) : [];
-  check('活动: 游戏视图活动按剩余天数排序（过期在前）', evTitles[0] === '签到活动（已过期）');
+  check('活动: 游戏视图活动按剩余天数排序（过期在前）', evTitles[0] === '游戏A-过期活动');
   check('游戏视图: 无图片图标时头部显示状态圆点', Boolean(document.querySelector('.game-head .gh-emoji .g-dot')));
 
-  // 18. 今日待办：每游戏内顺序 每日→每周→活动→主线；活动按剩余天数升序
+  // 18. 今日待办：游戏块按活动最短剩余日期排序 + 每游戏内顺序
   ui.goTo('dashboard');
   await new Promise((r) => setTimeout(r, 120));
+  const blockNames = [...document.querySelectorAll('.dash-game .g-name')].map((e) => e.textContent);
+  check('待办: 活动剩余日期最短的游戏排最前', blockNames[0] === '游戏A' && blockNames[1] === '游戏B' && blockNames[2] === '游戏C');
   const firstBlock = document.querySelector('.dash-game');
   check('待办: 无图片图标时头部显示状态圆点', Boolean(firstBlock && firstBlock.querySelector('.dash-game-head .g-dot')));
   const cats = firstBlock ? [...firstBlock.querySelectorAll('.todo-row')].map((row) => {
@@ -296,6 +330,8 @@ async function runSmoke() {
   check('待办: 每游戏内待办顺序 每日→每周→活动→主线', catIdx.length > 0 && catIdx.every((v, i) => i === 0 || v >= catIdx[i - 1]));
   const evRows = firstBlock ? [...firstBlock.querySelectorAll('.todo-row')].filter((r) => r.querySelector('.row-due')) : [];
   check('待办: 活动行按剩余天数升序（过期在前）', evRows.length >= 2 && evRows[0].querySelector('.row-due').classList.contains('over'));
+  // 示例数据入口已彻底移除
+  check('待办: 空态/设置中不含"示例数据"入口', !document.querySelector('[data-action="load-sample"]') && ![...document.querySelectorAll('*')].some((el) => el.textContent?.includes('加载示例')));
 
   // 19. 侧栏收起 / 展开
   const sbBtn = document.getElementById('btn-sidebar');
@@ -338,26 +374,30 @@ async function runSmoke() {
     check('截止: 天数模式保存为对应日期(剩3天)', Boolean(evTask && evTask.dueDate && m.dueDaysLeft(evTask) === 3));
   }
 
-  // 22. 鼠标穿透 + 穿透快捷键
-  await store.setPassthrough(true);
+  // 22. 鼠标穿透：标题栏按钮切换 + 快捷键注册
+  const ptBtn = document.getElementById('btn-pt');
+  check('穿透: 标题栏穿透按钮存在', Boolean(ptBtn));
+  ptBtn.click();
   await new Promise((r) => setTimeout(r, 80));
-  check('穿透: 开启后窗口忽略鼠标点击', (await api.winGetPassthrough()) === true);
+  check('穿透: 按钮开启后窗口忽略鼠标点击', (await api.winGetPassthrough()) === true);
   check('穿透: 界面显示穿透标识', document.body.classList.contains('passthrough'));
-  await store.setPassthrough(false);
+  ptBtn.click();
   await new Promise((r) => setTimeout(r, 60));
-  check('穿透: 关闭后恢复鼠标交互', (await api.winGetPassthrough()) === false);
+  check('穿透: 按钮关闭后恢复鼠标交互', (await api.winGetPassthrough()) === false);
   const scRes = await api.winSetPassthroughShortcut('CommandOrControl+Shift+=');
   check('快捷键: 自定义穿透快捷键注册成功', Boolean(scRes && scRes.ok));
 
   // 23. 侧栏收起按钮位于标题栏左侧
   check('侧栏: 收起按钮位于标题栏左侧', Boolean(document.querySelector('#titlebar .tb-drag #btn-sidebar')));
 
-  // 24. 透明度滑块 1% 微调 + 快捷键设置项
+  // 24. 透明度滑块 1% 微调 + 快捷键设置项 + 无示例数据入口
   ui.goTo('settings');
   await new Promise((r) => setTimeout(r, 120));
   const opInput = document.querySelector('#gs-opacity');
   check('透明度: 滑块支持 1% 微调', Boolean(opInput && opInput.step === '1' && opInput.min === '20'));
   check('快捷键: 设置页展示穿透快捷键徽标与修改按钮', Boolean(document.querySelector('#pt-shortcut') && document.querySelector('#pt-record')));
+  check('设置: 点击不激活窗口开关存在', Boolean(document.querySelector('#sw-noactivate')));
+  check('设置: 示例数据入口已移除', !document.querySelector('[data-action="load-sample"]'));
 
   const ok = checks.every((c) => c.pass);
   const d = store.get();

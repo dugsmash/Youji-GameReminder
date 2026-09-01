@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('api', {
   winTogglePin: () => ipcRenderer.invoke('window:togglePin'),
   winSetPin: (pin) => ipcRenderer.invoke('window:setPin', pin),
   winSetOpacity: (v) => ipcRenderer.invoke('window:setOpacity', v),
+  winSetFocusable: (v) => ipcRenderer.invoke('window:setFocusable', v),
   winSetPassthrough: (v) => ipcRenderer.invoke('window:passthrough:set', v),
   winGetPassthrough: () => ipcRenderer.invoke('window:passthrough:get'),
   winSetPassthroughShortcut: (accel) => ipcRenderer.invoke('window:shortcut:setPassthrough', accel),

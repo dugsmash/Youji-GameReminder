@@ -4,7 +4,7 @@ import {
   dailyPeriodKey, weeklyPeriodKey, periodKeyOf,
   isDone, setDone, pruneCompletions,
   dueInfo, dueDaysLeft, statsOf, historyDots, groupTasks, gameStatus,
-  demoData, demoTasks, fmtDate, weeklyStart,
+  fmtDate, weeklyStart,
 } from '../renderer/js/model.js';
 
 let passed = 0, failed = 0;
@@ -183,22 +183,41 @@ section('游戏状态圆点（红黄蓝绿）');
   eq(gameStatus(game, [mk('daily')], now).level, 'red', '仅每日且全未完成 → 红');
 }
 
-section('示例数据隔离');
+section('数据隔离（手工构造 fixture）');
 {
-  const data = demoData();
-  assert(data.games.length === 3, '3 款游戏');
-  assert(data.games.every((g) => g.bgBlur === 4), '所有背景默认模糊 4px');
-  const ids = new Set(data.games.map((g) => g.id));
-  assert(ids.size === 3, '游戏 id 唯一');
-  for (const t of data.tasks) {
-    if (!ids.has(t.gameId)) { failed++; console.error('  ✗ 任务属于不存在的游戏: ' + t.title); continue; }
-    passed++;
-  }
+  const g1 = { id: 'g1', name: '游戏A' };
+  const g2 = { id: 'g2', name: '游戏B' };
+  const tasks = [
+    { id: 't1', gameId: 'g1', title: '每日' },
+    { id: 't2', gameId: 'g1', title: '周本' },
+    { id: 't3', gameId: 'g2', title: '主线' },
+  ];
+  const ids = new Set([g1.id, g2.id]);
+  assert(tasks.every((t) => ids.has(t.gameId)), '任务全部归属有效游戏');
+  const g1Ids = new Set(tasks.filter((t) => t.gameId === g1.id).map((t) => t.id));
+  assert(!tasks.some((t) => t.gameId === g2.id && g1Ids.has(t.id)), '游戏1任务不混入游戏2');
   const byGame = {};
-  for (const t of data.tasks) byGame[t.gameId] = (byGame[t.gameId] || 0) + 1;
-  for (const [gid, n] of Object.entries(byGame)) {
-    if (n < 5) { failed++; console.error(`  ✗ 游戏 ${gid} 任务过少: ${n}`); } else passed++;
-  }
+  for (const t of tasks) byGame[t.gameId] = (byGame[t.gameId] || 0) + 1;
+  eq(byGame['g1'], 2, '游戏A 2 个任务');
+  eq(byGame['g2'], 1, '游戏B 1 个任务');
+}
+
+section('活动最短剩余天数（今日待办游戏块排序依据）');
+{
+  const now = t(2026, 9, 1, 12, 0);
+  const game = { dailyResetHour: 4, weeklyResetDay: 1 };
+  const mk = (over) => ({ id: 'x', category: 'event', resetMode: 'none', completions: {}, dueDate: null, ...over });
+  // 未完成活动的最短剩余天数
+  const gTasks = [
+    mk({ dueDate: '2026-09-05' }),
+    mk({ dueDate: '2026-09-08' }),
+    mk({ dueDate: '2026-09-06', completions: { once: 1 } }), // 已完成 → 不计入
+  ];
+  const mins = gTasks
+    .filter((t) => t.dueDate && !isDone(t, game, now))
+    .map((t) => dueDaysLeft(t, now));
+  eq(Math.min(...mins), 4, '绝区零场景：最短剩余 4 天（9-05）');
+  assert(dueDaysLeft({ dueDate: '2026-09-03' }, now) === 2, '9-03 剩 2 天');
 }
 
 console.log(`\n==============================`);

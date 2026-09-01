@@ -9,6 +9,9 @@ import {
 
 // 仅使用图片图标：emoji 图标已全部移除
 
+// 穿透快捷键默认值（与主进程一致：Ctrl+Shift++；裸 "+" 在 Windows 全局注册失败）
+const DEFAULT_PT_SHORTCUT = 'CommandOrControl+Shift+=';
+
 // 侧边栏状态圆点提示文案
 const STATUS_HINT = {
   red: '全部未完成',
@@ -117,6 +120,18 @@ export function initUI(store, api) {
     renderSidebar();
     renderContent();
     renderPinBtn();
+    renderPtBtn();
+  }
+
+  /** 标题栏鼠标穿透按钮状态 */
+  function renderPtBtn() {
+    const btn = $('#btn-pt');
+    if (!btn) return;
+    const on = Boolean(store.get().settings.passthrough);
+    btn.classList.toggle('pt-on', on);
+    btn.title = on
+      ? `鼠标穿透中（${humanizeAccel(store.get().settings.passthroughShortcut || DEFAULT_PT_SHORTCUT)} 恢复）`
+      : `鼠标穿透（${humanizeAccel(store.get().settings.passthroughShortcut || DEFAULT_PT_SHORTCUT)} 切换）`;
   }
 
   /** 鼠标穿透时：界面加穿透标识类（徽标 + 轻微淡化） */
@@ -124,7 +139,7 @@ export function initUI(store, api) {
     document.body.classList.toggle('passthrough', Boolean(store.get().settings.passthrough));
     const badge = $('#passthrough-badge');
     if (badge) {
-      const accel = store.get().settings.passthroughShortcut || 'Plus';
+      const accel = store.get().settings.passthroughShortcut || DEFAULT_PT_SHORTCUT;
       badge.textContent = `🖱 鼠标穿透中 · 按 ${humanizeAccel(accel)} 恢复`;
     }
   }
@@ -221,8 +236,14 @@ export function initUI(store, api) {
       const tasks = data.tasks.filter((t) => t.gameId === g.id);
       const status = gameStatus(g, tasks, now);
       const rows = [];
+      // 该游戏未完成活动的最短剩余天数（无带截止日期的未完成活动 → null）
+      let minDue = null;
       for (const t of tasks) {
         const done = isDone(t, g, now);
+        if (t.category === 'event' && t.dueDate && !done) {
+          const dl = dueDaysLeft(t, now);
+          if (dl !== null && (minDue === null || dl < minDue)) minDue = dl;
+        }
         if (t.category === 'daily') {
           dTotal++; if (done) dDone++; else rows.push({ t, tag: '每日', done: false });
         } else if (t.category === 'weekly') {
@@ -250,8 +271,16 @@ export function initUI(store, api) {
         }
         return (a.t.sortOrder ?? 0) - (b.t.sortOrder ?? 0);
       });
-      gameBlocks.push({ g, rows });
+      gameBlocks.push({ g, rows, minDue });
     }
+    // 游戏块排序：活动剩余日期最短的游戏排最前（过期/临期最先），无截止日期的按原顺序排最后
+    gameBlocks.sort((a, b) => {
+      const da = a.minDue, db = b.minDue;
+      if (da === null && db === null) return (a.g.sortOrder ?? 0) - (b.g.sortOrder ?? 0);
+      if (da === null) return 1;
+      if (db === null) return -1;
+      return da - db;
+    });
 
     const chips = [];
     if (dTotal > 0) chips.push(`<span class="chip">每日 <b>${dDone}/${dTotal}</b></span>`);
@@ -293,7 +322,7 @@ export function initUI(store, api) {
         <div class="dash-empty">
           <div class="big">🎉</div>
           太棒了，没有未完成的任务！<br><br>
-          或 <button class="btn ghost" data-action="load-sample">加载示例数据看看效果</button>
+          <span class="hint">在侧边栏点击「＋ 添加游戏」开始记录</span>
         </div>`}
     `;
   }
@@ -443,13 +472,17 @@ export function initUI(store, api) {
           </div>
         </div>
         <div class="setting-row">
-          <div class="s-label"><b>鼠标穿透</b><small>悬浮窗不响应鼠标点击，游戏内操作不受遮挡；用快捷键切换</small></div>
+          <div class="s-label"><b>鼠标穿透</b><small>悬浮窗不响应鼠标点击，游戏内操作不受遮挡；用快捷键或标题栏按钮切换</small></div>
           <label class="switch"><input type="checkbox" id="sw-pt" ${data.settings.passthrough ? 'checked' : ''}><span class="slider"></span></label>
         </div>
         <div class="setting-row">
-          <div class="s-label"><b>穿透快捷键</b><small>点击「修改」后直接按下新按键组合（默认 +）</small></div>
-          <span class="badge kbd" id="pt-shortcut">${esc(humanizeAccel(data.settings.passthroughShortcut || 'Plus'))}</span>
+          <div class="s-label"><b>穿透快捷键</b><small>点击「修改」后直接按下新按键组合（默认 Ctrl+Shift++）</small></div>
+          <span class="badge kbd" id="pt-shortcut">${esc(humanizeAccel(data.settings.passthroughShortcut || DEFAULT_PT_SHORTCUT))}</span>
           <button class="btn ghost" id="pt-record">修改</button>
+        </div>
+        <div class="setting-row">
+          <div class="s-label"><b>点击不激活窗口</b><small>避免点击悬浮窗时亚克力颜色变化；开启后输入框可能无法输入（若出现请关闭）</small></div>
+          <label class="switch"><input type="checkbox" id="sw-noactivate" ${data.settings.noActivate ? 'checked' : ''}><span class="slider"></span></label>
         </div>
         <div class="setting-row">
           <div class="s-label"><b>开机自启</b><small>登录系统后自动启动并悬浮</small></div>
@@ -500,10 +533,6 @@ export function initUI(store, api) {
           <div class="s-label"><b>备份与迁移</b><small>导出 JSON 备份 / 从备份导入</small></div>
           <button class="btn" data-action="export-data">导出</button>
           <button class="btn" data-action="import-data">导入</button>
-        </div>
-        <div class="setting-row">
-          <div class="s-label"><b>示例数据</b><small>加载 3 款示例游戏体验功能</small></div>
-          <button class="btn ghost" data-action="load-sample">加载示例</button>
         </div>
         <div class="setting-row">
           <div class="s-label"><b>清空数据</b><small>删除全部游戏与任务（不可恢复）</small></div>
@@ -887,11 +916,6 @@ export function initUI(store, api) {
         });
         break;
       }
-      case 'load-sample': {
-        store.loadSample();
-        toast('示例数据已加载', 'ok');
-        break;
-      }
       case 'clear-data': {
         openConfirm('清空全部数据', '将删除所有游戏与任务，此操作不可恢复。确定继续？', async () => {
           await store.clearAll();
@@ -919,6 +943,8 @@ export function initUI(store, api) {
     // 标题栏
     const sidebarBtn = $('#btn-sidebar');
     if (sidebarBtn) sidebarBtn.addEventListener('click', toggleSidebar);
+    const ptBtn = $('#btn-pt');
+    if (ptBtn) ptBtn.addEventListener('click', () => store.setPassthrough(!store.get().settings.passthrough));
     $('#btn-pin').addEventListener('click', async () => {
       const pin = await store.setPin(!store.get().settings.pin);
       renderPinBtn();
@@ -998,6 +1024,7 @@ export function initUI(store, api) {
       else if (e.target.id === 'sw-auto') store.setAutoStart(e.target.checked);
       else if (e.target.id === 'sw-sidebar') { store.setSettings({ sidebarCollapsed: e.target.checked }); renderAll(); }
       else if (e.target.id === 'sw-pt') store.setPassthrough(e.target.checked);
+      else if (e.target.id === 'sw-noactivate') store.setNoActivate(e.target.checked);
       else if (e.target.id === 'gs-bg-file') {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
@@ -1006,7 +1033,9 @@ export function initUI(store, api) {
           .catch((err) => toast('背景读取失败：' + err.message, 'err'));
         e.target.value = '';
       } else if (e.target.id === 'gs-blur') {
-        store.setSettings({ bgBlur: Number(e.target.value) });
+        store.setSettings({ bgBlur: Number(e.target.value) }); // 松开时正式保存（含重渲染）
+      } else if (e.target.id === 'gs-opacity') {
+        store.setOpacity(Number(e.target.value) / 100); // 松开时正式保存（含重渲染）
       }
     });
     // 全局背景：上传/清除按钮 + 模糊度实时预览
@@ -1015,16 +1044,18 @@ export function initUI(store, api) {
       if (t.id === 'gs-bg-upload') { const f = document.querySelector('#gs-bg-file'); if (f) f.click(); }
       else if (t.id === 'gs-bg-clear') store.setSettings({ backgroundImage: null });
     });
+    // 拖动过程中的实时反馈：只更新数值显示与窗口效果，不整页重渲染（避免拖动中断）
     document.addEventListener('input', (e) => {
       if (e.target.id === 'gs-blur') {
         const val = document.querySelector('#gs-blur-val');
         if (val) val.textContent = `${e.target.value}px`;
         const prev = document.querySelector('#gs-bg-preview');
         if (prev) prev.style.filter = `blur(${e.target.value}px)`;
+        store.setSettingsSilent({ bgBlur: Number(e.target.value) });
       } else if (e.target.id === 'gs-opacity') {
         const val = document.querySelector('#gs-opacity-val');
         if (val) val.textContent = `${e.target.value}%`;
-        store.setOpacity(Number(e.target.value) / 100);
+        store.setOpacity(Number(e.target.value) / 100, true);
       }
     });
 

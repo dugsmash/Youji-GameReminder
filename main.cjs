@@ -160,7 +160,8 @@ function startTopWatcher() {
 
 let desiredPassthrough = false;             // 期望的穿透状态
 let passthroughAccel = null;                // 已注册的穿透快捷键（accelerator）
-const DEFAULT_PASSTHROUGH_SHORTCUT = 'Plus'; // 默认快捷键 "+"
+// 默认 Ctrl+Shift++（=键+Shift）。实测裸 "Plus"/"+" 在 Windows 全局注册失败（RegisterHotKey 需要修饰键）
+const DEFAULT_PASSTHROUGH_SHORTCUT = 'CommandOrControl+Shift+=';
 
 /** 穿透快捷键触发：切换鼠标穿透并通知渲染层/托盘 */
 function passthroughHandler() {
@@ -180,7 +181,9 @@ function applyPassthrough(p) {
 function registerPassthroughShortcut(accel) {
   const acc = String(accel || DEFAULT_PASSTHROUGH_SHORTCUT);
   const old = passthroughAccel;
-  if (old && old !== acc) { try { globalShortcut.unregister(old); } catch {} }
+  // 同键已注册（如启动兜底 + 渲染层初始化重复调用）→ 直接成功
+  if (old && old === acc) return { ok: true, accel: acc };
+  if (old) { try { globalShortcut.unregister(old); } catch {} }
   try {
     if (globalShortcut.register(acc, passthroughHandler)) {
       passthroughAccel = acc;
@@ -295,6 +298,10 @@ function registerIpc() {
     if (win) win.setOpacity(o);
     return o;
   });
+  ipcMain.handle('window:setFocusable', (_e, v) => {
+    if (win) win.setFocusable(Boolean(v));
+    return Boolean(v);
+  });
   ipcMain.handle('window:passthrough:set', (_e, p) => {
     const changed = Boolean(p) !== desiredPassthrough;
     const r = applyPassthrough(p);
@@ -335,11 +342,55 @@ function runSmoke() {
 
 async function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
+/** 截图模式专用测试数据（仅写入临时 userData，绝不触碰真实数据） */
+function shotsFixtureData(now = new Date()) {
+  const DAY = 86400000;
+  const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const rel = (n) => fmt(new Date(now.getTime() + n * DAY));
+  const key = (n) => `d:${rel(n)}`;
+  const weekAgoKey = (() => { const d = new Date(now); d.setDate(d.getDate() - 7); return `w:${fmt(d)}`; })();
+  const games = [
+    { id: 'g_shots_a', name: '绝区零', iconImage: null, dailyResetHour: 4, weeklyResetDay: 1, backgroundImage: null, bgBlur: 4, archived: false, createdAt: now.getTime(), sortOrder: 0 },
+    { id: 'g_shots_b', name: '鸣潮', iconImage: null, dailyResetHour: 4, weeklyResetDay: 1, backgroundImage: null, bgBlur: 4, archived: false, createdAt: now.getTime(), sortOrder: 1 },
+    { id: 'g_shots_c', name: '异环', iconImage: null, dailyResetHour: 4, weeklyResetDay: 1, backgroundImage: null, bgBlur: 4, archived: false, createdAt: now.getTime(), sortOrder: 2 },
+  ];
+  const t = (gameId, over, i) => ({ id: `t_shots_${gameId.slice(-1)}_${i}`, gameId, archived: false, notes: '', dueDate: null, resetMode: 'none', completions: {}, createdAt: now.getTime(), sortOrder: i, ...over });
+  const A = games[0].id, B = games[1].id, C = games[2].id;
+  const tasks = [
+    // A（绝区零）：2 天后有活动到期 → 最急
+    t(A, { title: '每日签到', category: 'daily', completions: { [key(0)]: now.getTime() } }, 0),
+    t(A, { title: '体力清空', category: 'daily' }, 1),
+    t(A, { title: '周本 3 次', category: 'weekly', completions: { [weekAgoKey]: now.getTime() } }, 2),
+    t(A, { title: '深渊 / 模拟宇宙', category: 'weekly' }, 3),
+    t(A, { title: '主线 · 第三章', category: 'main' }, 4),
+    t(A, { title: '活动 · 每日登录', category: 'event', resetMode: 'daily', dueDate: rel(4), completions: { [key(0)]: now.getTime() } }, 5),
+    t(A, { title: '限时挑战', category: 'event', dueDate: rel(2) }, 6),
+    t(A, { title: '过期活动', category: 'event', dueDate: rel(-2) }, 7),
+    // B（鸣潮）：6 天后有活动到期
+    t(B, { title: '每日任务', category: 'daily', completions: { [key(0)]: now.getTime() } }, 0),
+    t(B, { title: '体力清空', category: 'daily' }, 1),
+    t(B, { title: '声骸周本', category: 'weekly', completions: { [weekAgoKey]: now.getTime() } }, 2),
+    t(B, { title: '全息战略', category: 'weekly' }, 3),
+    t(B, { title: '主线 · 潮汐之章', category: 'main' }, 4),
+    t(B, { title: '活动 · 每日登录', category: 'event', resetMode: 'daily', dueDate: rel(6), completions: { [key(0)]: now.getTime() } }, 5),
+    t(B, { title: '限时任务', category: 'event', dueDate: rel(6) }, 6),
+    t(B, { title: '限时任务二', category: 'event', dueDate: rel(7) }, 7),
+    // C（异环）：无带截止日期的未完成活动
+    t(C, { title: '每日签到', category: 'daily', completions: { [key(0)]: now.getTime() } }, 0),
+    t(C, { title: '体力清空', category: 'daily' }, 1),
+    t(C, { title: '周本', category: 'weekly', completions: { [weekAgoKey]: now.getTime() } }, 2),
+    t(C, { title: '差分宇宙', category: 'weekly' }, 3),
+    t(C, { title: '主线 · 序章', category: 'main' }, 4),
+    t(C, { title: '活动A', category: 'event', dueDate: rel(20) }, 5),
+    t(C, { title: '活动B', category: 'event', dueDate: rel(25) }, 6),
+    t(C, { title: '活动C', category: 'event', dueDate: rel(30) }, 7),
+  ];
+  return { version: 1, settings: { pin: true, acrylic: true }, games, tasks };
+}
+
 async function runShots() {
-  const { demoData } = await import('./renderer/js/model.js');
-  // 注入示例数据
-  const data = demoData();
-  saveData(data);
+  // 注入截图专用测试数据（仅临时 userData）
+  saveData(shotsFixtureData());
 
   const primary = screen.getPrimaryDisplay();
   const { x, y, width, height } = primary.bounds;

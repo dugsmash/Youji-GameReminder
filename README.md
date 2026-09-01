@@ -54,6 +54,7 @@ npm run pack:dir        # 生成免安装目录（dist/win-unpacked）
 | --- | --- |
 | `Ctrl+Shift+P` | 切换窗口置顶（全局） |
 | `Ctrl+Shift+H` | 显示 / 隐藏主窗口（全局） |
+| `Ctrl+Shift++` | 鼠标穿透 开/关（全局，设置中可改） |
 | `Esc` | 关闭当前弹窗 |
 
 ## 🗂️ 项目结构
