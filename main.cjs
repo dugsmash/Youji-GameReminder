@@ -2,7 +2,7 @@
 // 游迹 GameRemainder · Electron 主进程（CommonJS）
 // 悬浮置顶 + 透明毛玻璃(CSS 模糊) + 系统托盘 + 原子写盘 + 冒烟/截图模式
 // ============================================================
-const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell, screen, desktopCapturer, globalShortcut, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell, screen, globalShortcut, nativeImage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -449,7 +449,6 @@ async function runShots() {
 
   const outDir = path.join(__dirname, 'docs', 'screenshots');
   fs.mkdirSync(outDir, { recursive: true });
-  const bounds = win.getBounds();
 
   const shot = async (name) => {
     const img = await win.webContents.capturePage();
@@ -494,43 +493,6 @@ async function runShots() {
   await win.webContents.executeJavaScript(`window.__openAddTask && window.__openAddTask()`, true);
   await sleep(300);
   await shot('03-add-task');
-
-  // 全局背景视图（未单独设置背景的游戏 → 使用全局背景）
-  await win.webContents.executeJavaScript(`window.__gotoGameByIndex && window.__gotoGameByIndex(1)`, true);
-  await sleep(400);
-  await shot('06-global-background');
-
-  // 设置页（展示全局背景设置区块）
-  await win.webContents.executeJavaScript(`window.__gotoSettings && window.__gotoSettings()`, true);
-  await sleep(400);
-  await shot('07-settings');
-
-  // 桌面级截图（验证毛玻璃真实效果：窗口背后的桌面被模糊）
-  try {
-    const sources = await desktopCapturer.getSources({
-      types: ['screen'],
-      thumbnailSize: { width, height },
-    });
-    const src = sources.find((s) => s.display_id === String(primary.id)) || sources[0];
-    if (src && !src.thumbnail.isEmpty()) {
-      // 全屏原始图（供像素级模糊验证：窗内外对比）
-      fs.writeFileSync(path.join(outDir, '05-desktop-full.png'), src.thumbnail.toPNG());
-      console.log('[shots] 已保存 05-desktop-full.png');
-      const tw = src.thumbnail.getSize().width;
-      const scale = tw / width;
-      const crop = {
-        x: Math.round((bounds.x - x) * scale),
-        y: Math.round((bounds.y - y) * scale),
-        width: Math.round(bounds.width * scale),
-        height: Math.round(bounds.height * scale),
-      };
-      const cropped = src.thumbnail.crop(crop);
-      fs.writeFileSync(path.join(outDir, '04-desktop-glass.png'), cropped.toPNG());
-      console.log('[shots] 已保存 04-desktop-glass.png');
-    }
-  } catch (e) {
-    console.error('[shots] 桌面截图失败(不影响其他截图):', e.message);
-  }
 
   await sleep(300);
   app.exit(0);
