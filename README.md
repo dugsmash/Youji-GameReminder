@@ -50,7 +50,7 @@ Everything is stored in a local JSON file. No accounts, no cloud, no telemetry.
 
 | Today | Game view | Add task |
 |---|---|---|
-| ![today](docs/screenshots/01-today.png) | ![game](docs/screenshots/02-game-view.png) | ![add-task](docs/screenshots/03-add-task.png) |
+| ![today](https://cdn.jsdelivr.net/gh/dugsmash/youji-gamereminder@main/docs/screenshots/01-today.png) | ![game](https://cdn.jsdelivr.net/gh/dugsmash/youji-gamereminder@main/docs/screenshots/02-game-view.png) | ![add-task](https://cdn.jsdelivr.net/gh/dugsmash/youji-gamereminder@main/docs/screenshots/03-add-task.png) |
 
 ---
 

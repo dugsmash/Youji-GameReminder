@@ -50,7 +50,7 @@ GameRemainder（游迹）是一款**轻量**、**完全离线**的桌面游戏�
 
 | 今日待办 | 游戏视图 | 添加任务 |
 |---|---|---|
-| ![today](docs/screenshots/01-today.png) | ![game](docs/screenshots/02-game-view.png) | ![add-task](docs/screenshots/03-add-task.png) |
+| ![today](https://cdn.jsdelivr.net/gh/dugsmash/youji-gamereminder@main/docs/screenshots/01-today.png) | ![game](https://cdn.jsdelivr.net/gh/dugsmash/youji-gamereminder@main/docs/screenshots/02-game-view.png) | ![add-task](https://cdn.jsdelivr.net/gh/dugsmash/youji-gamereminder@main/docs/screenshots/03-add-task.png) |
 
 ---
 
