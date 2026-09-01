@@ -156,6 +156,45 @@ function startTopWatcher() {
   topInterval = setInterval(reassertTop, 4000);
 }
 
+// ---------- 鼠标穿透 ----------
+
+let desiredPassthrough = false;             // 期望的穿透状态
+let passthroughAccel = null;                // 已注册的穿透快捷键（accelerator）
+const DEFAULT_PASSTHROUGH_SHORTCUT = 'Plus'; // 默认快捷键 "+"
+
+/** 穿透快捷键触发：切换鼠标穿透并通知渲染层/托盘 */
+function passthroughHandler() {
+  const p = applyPassthrough(!desiredPassthrough);
+  win?.webContents.send('window:passthrough-changed', p);
+  rebuildTrayMenu();
+}
+
+function applyPassthrough(p) {
+  desiredPassthrough = Boolean(p);
+  if (win && !win.isDestroyed()) win.setIgnoreMouseEvents(desiredPassthrough);
+  rebuildTrayMenu();
+  return desiredPassthrough;
+}
+
+/** 注册穿透全局快捷键；失败时回退旧快捷键并返回错误 */
+function registerPassthroughShortcut(accel) {
+  const acc = String(accel || DEFAULT_PASSTHROUGH_SHORTCUT);
+  const old = passthroughAccel;
+  if (old && old !== acc) { try { globalShortcut.unregister(old); } catch {} }
+  try {
+    if (globalShortcut.register(acc, passthroughHandler)) {
+      passthroughAccel = acc;
+      return { ok: true, accel: acc };
+    }
+    // 注册失败：恢复旧快捷键
+    if (old && old !== acc) { try { globalShortcut.register(old, passthroughHandler); } catch {} }
+    return { ok: false, error: '快捷键注册失败（可能与其他程序冲突或按键无效）' };
+  } catch (e) {
+    if (old && old !== acc) { try { globalShortcut.register(old, passthroughHandler); } catch {} }
+    return { ok: false, error: e.message };
+  }
+}
+
 // ---------- 托盘 ----------
 
 function createTray() {
@@ -172,10 +211,12 @@ function createTray() {
 function rebuildTrayMenu() {
   if (!tray) return;
   const pinned = win ? win.isAlwaysOnTop() : true;
+  const pt = desiredPassthrough;
   const menu = Menu.buildFromTemplate([
     { label: '显示主窗口', click: () => { if (win) { win.show(); win.focus(); } } },
     { type: 'separator' },
     { label: pinned ? '取消置顶' : '保持置顶', click: () => { const p = applyPin(!pinned); win?.webContents.send('window:pin-changed', p); } },
+    { label: pt ? '恢复鼠标交互' : '鼠标穿透（按快捷键切换）', click: () => passthroughHandler() },
     { label: '退出', click: () => { quitRequested = true; app.quit(); } },
   ]);
   tray.setContextMenu(menu);
@@ -192,6 +233,7 @@ function registerIpc() {
     electron: process.versions.electron,
     userData: app.getPath('userData'),
     acrylicSupported: IS_WIN11,
+    passthroughShortcut: passthroughAccel || DEFAULT_PASSTHROUGH_SHORTCUT,
   }));
 
   ipcMain.handle('data:load', () => loadData());
@@ -253,6 +295,15 @@ function registerIpc() {
     if (win) win.setOpacity(o);
     return o;
   });
+  ipcMain.handle('window:passthrough:set', (_e, p) => {
+    const changed = Boolean(p) !== desiredPassthrough;
+    const r = applyPassthrough(p);
+    // 仅在状态变化时通知渲染层（避免 setPassthrough→winSetPassthrough 回环）
+    if (changed) win?.webContents.send('window:passthrough-changed', r);
+    return r;
+  });
+  ipcMain.handle('window:passthrough:get', () => desiredPassthrough);
+  ipcMain.handle('window:shortcut:setPassthrough', (_e, accel) => registerPassthroughShortcut(accel));
   ipcMain.handle('window:close', () => { win?.hide(); return true; });
 
   ipcMain.handle('app:autostart:get', () => app.getLoginItemSettings().openAtLogin);
@@ -429,6 +480,8 @@ if (!gotLock) {
     createWindow();
     createTray();
     startTopWatcher(); // 全屏游戏下周期性保持置顶
+    // 穿透快捷键默认 "+"（渲染层初始化后会按持久化配置重新注册）
+    registerPassthroughShortcut(DEFAULT_PASSTHROUGH_SHORTCUT);
 
     // 全局快捷键：Ctrl+Shift+P 切换置顶；Ctrl+Shift+H 显示/隐藏
     try {

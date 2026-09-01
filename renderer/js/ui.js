@@ -112,10 +112,33 @@ export function initUI(store, api) {
 
   function renderAll() {
     applySidebarWidth();
+    applyPassthroughClass();
     renderSidebarBtn();
     renderSidebar();
     renderContent();
     renderPinBtn();
+  }
+
+  /** 鼠标穿透时：界面加穿透标识类（徽标 + 轻微淡化） */
+  function applyPassthroughClass() {
+    document.body.classList.toggle('passthrough', Boolean(store.get().settings.passthrough));
+    const badge = $('#passthrough-badge');
+    if (badge) {
+      const accel = store.get().settings.passthroughShortcut || 'Plus';
+      badge.textContent = `🖱 鼠标穿透中 · 按 ${humanizeAccel(accel)} 恢复`;
+    }
+  }
+
+  /** 快捷键可读化：CommandOrControl+Shift+Plus → Ctrl+Shift++ */
+  function humanizeAccel(accel) {
+    if (!accel) return '';
+    const map = {
+      CommandOrControl: 'Ctrl', Control: 'Ctrl', Ctrl: 'Ctrl',
+      Command: 'Win', Super: 'Win', Meta: 'Win',
+      Alt: 'Alt', Shift: 'Shift', Plus: '+', Space: '空格',
+      Up: '↑', Down: '↓', Left: '←', Right: '→',
+    };
+    return String(accel).split('+').map((p) => map[p] || p).join('+');
   }
 
   /** 应用侧栏宽度（CSS 变量，拖拽或设置持久化；收起时宽度归零） */
@@ -413,11 +436,20 @@ export function initUI(store, api) {
           <span class="badge ${acrylicOn ? '' : 'mode'}">${info.isWin11 ? '亚克力' : '模糊回退'}</span>
         </div>
         <div class="setting-row">
-          <div class="s-label"><b>窗口透明度</b><small>调节悬浮窗整体不透明度，游戏内减少遮挡（30%–100%）</small></div>
+          <div class="s-label"><b>窗口透明度</b><small>调节悬浮窗整体不透明度，游戏内减少遮挡（20%–100%，可 1% 微调）</small></div>
           <div class="range-wrap">
-            <input type="range" id="gs-opacity" min="30" max="100" step="5" value="${Math.round((data.settings.opacity ?? 1) * 100)}" />
+            <input type="range" id="gs-opacity" min="20" max="100" step="1" value="${Math.round((data.settings.opacity ?? 1) * 100)}" />
             <span class="range-val" id="gs-opacity-val">${Math.round((data.settings.opacity ?? 1) * 100)}%</span>
           </div>
+        </div>
+        <div class="setting-row">
+          <div class="s-label"><b>鼠标穿透</b><small>悬浮窗不响应鼠标点击，游戏内操作不受遮挡；用快捷键切换</small></div>
+          <label class="switch"><input type="checkbox" id="sw-pt" ${data.settings.passthrough ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="s-label"><b>穿透快捷键</b><small>点击「修改」后直接按下新按键组合（默认 +）</small></div>
+          <span class="badge kbd" id="pt-shortcut">${esc(humanizeAccel(data.settings.passthroughShortcut || 'Plus'))}</span>
+          <button class="btn ghost" id="pt-record">修改</button>
         </div>
         <div class="setting-row">
           <div class="s-label"><b>开机自启</b><small>登录系统后自动启动并悬浮</small></div>
@@ -900,6 +932,10 @@ export function initUI(store, api) {
       renderPinBtn();
     });
 
+    api.onPassthroughChanged((p) => {
+      store.setPassthrough(p); // 更新本地设置（含保存）并触发重渲染
+    });
+
     // 导航
     document.querySelectorAll('.nav-item[data-view]').forEach((el) => {
       el.addEventListener('click', () => {
@@ -961,6 +997,7 @@ export function initUI(store, api) {
       if (e.target.id === 'sw-pin') store.setPin(e.target.checked);
       else if (e.target.id === 'sw-auto') store.setAutoStart(e.target.checked);
       else if (e.target.id === 'sw-sidebar') { store.setSettings({ sidebarCollapsed: e.target.checked }); renderAll(); }
+      else if (e.target.id === 'sw-pt') store.setPassthrough(e.target.checked);
       else if (e.target.id === 'gs-bg-file') {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
@@ -994,6 +1031,39 @@ export function initUI(store, api) {
     // Esc 关弹窗
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeModal();
+    });
+
+    // 穿透快捷键录制：点击「修改」→ 按下新组合
+    let recordingShortcut = false;
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'pt-record') {
+        recordingShortcut = true;
+        const b = document.querySelector('#pt-shortcut');
+        if (b) { b.textContent = '请按下新快捷键…'; b.classList.add('recording'); }
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!recordingShortcut) return;
+      if (e.key === 'Escape') { recordingShortcut = false; renderAll(); return; }
+      e.preventDefault();
+      e.stopPropagation();
+      const mods = [];
+      if (e.ctrlKey) mods.push('CommandOrControl');
+      if (e.altKey) mods.push('Alt');
+      if (e.shiftKey) mods.push('Shift');
+      if (e.metaKey) mods.push('Super');
+      const keyMap = { '+': 'Plus', ' ': 'Space', ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right' };
+      let key = keyMap[e.key] || e.key;
+      if (/^[a-z]$/i.test(key)) key = key.toUpperCase();
+      if (!/^(Plus|Space|Up|Down|Left|Right|F\d{1,2}|[A-Z0-9])$/.test(key)) return; // 无效按键忽略
+      const accel = [...mods, key].join('+');
+      recordingShortcut = false;
+      store.setPassthroughShortcut(accel).then((res) => {
+        toast(
+          res && res.ok ? `穿透快捷键已设为 ${humanizeAccel(accel)}` : `快捷键设置失败：${res?.error || '可能与其他程序冲突'}`,
+          res && res.ok ? 'ok' : 'err'
+        );
+      });
     });
   }
 

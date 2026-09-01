@@ -338,6 +338,27 @@ async function runSmoke() {
     check('截止: 天数模式保存为对应日期(剩3天)', Boolean(evTask && evTask.dueDate && m.dueDaysLeft(evTask) === 3));
   }
 
+  // 22. 鼠标穿透 + 穿透快捷键
+  await store.setPassthrough(true);
+  await new Promise((r) => setTimeout(r, 80));
+  check('穿透: 开启后窗口忽略鼠标点击', (await api.winGetPassthrough()) === true);
+  check('穿透: 界面显示穿透标识', document.body.classList.contains('passthrough'));
+  await store.setPassthrough(false);
+  await new Promise((r) => setTimeout(r, 60));
+  check('穿透: 关闭后恢复鼠标交互', (await api.winGetPassthrough()) === false);
+  const scRes = await api.winSetPassthroughShortcut('CommandOrControl+Shift+=');
+  check('快捷键: 自定义穿透快捷键注册成功', Boolean(scRes && scRes.ok));
+
+  // 23. 侧栏收起按钮位于标题栏左侧
+  check('侧栏: 收起按钮位于标题栏左侧', Boolean(document.querySelector('#titlebar .tb-drag #btn-sidebar')));
+
+  // 24. 透明度滑块 1% 微调 + 快捷键设置项
+  ui.goTo('settings');
+  await new Promise((r) => setTimeout(r, 120));
+  const opInput = document.querySelector('#gs-opacity');
+  check('透明度: 滑块支持 1% 微调', Boolean(opInput && opInput.step === '1' && opInput.min === '20'));
+  check('快捷键: 设置页展示穿透快捷键徽标与修改按钮', Boolean(document.querySelector('#pt-shortcut') && document.querySelector('#pt-record')));
+
   const ok = checks.every((c) => c.pass);
   const d = store.get();
   return {

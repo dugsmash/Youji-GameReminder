@@ -44,6 +44,9 @@ export function createStore(api) {
     try { autostart = await api.autoStartGet(); } catch { autostart = false; }
     // 应用持久化的置顶状态
     try { await api.winSetPin(Boolean(data.settings.pin)); } catch { /* noop */ }
+    // 应用持久化的鼠标穿透状态与快捷键（默认 "+"）
+    try { await api.winSetPassthroughShortcut(data.settings.passthroughShortcut || 'Plus'); } catch { /* noop */ }
+    try { await api.winSetPassthrough(Boolean(data.settings.passthrough)); } catch { /* noop */ }
     notify();
   }
 
@@ -160,6 +163,30 @@ export function createStore(api) {
     return o;
   }
 
+  /** 鼠标穿透（true=点击穿透悬浮窗） */
+  async function setPassthrough(v) {
+    const p = Boolean(v);
+    data = { ...data, settings: { ...data.settings, passthrough: p } };
+    scheduleSave();
+    try { await api.winSetPassthrough(p); } catch { /* noop */ }
+    notify();
+    return p;
+  }
+
+  /** 设置鼠标穿透全局快捷键（accelerator 字符串），注册成功才持久化 */
+  async function setPassthroughShortcut(accel) {
+    try {
+      const res = await api.winSetPassthroughShortcut(accel);
+      if (res && res.ok) {
+        data = { ...data, settings: { ...data.settings, passthroughShortcut: res.accel } };
+        scheduleSave(); notify();
+      }
+      return res || { ok: false };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
+  }
+
   /** 更新任意设置项（如侧栏间距） */
   function setSettings(patch) {
     data = { ...data, settings: { ...data.settings, ...patch } };
@@ -207,6 +234,7 @@ export function createStore(api) {
     addGame, updateGame, deleteGame,
     addTask, updateTask, deleteTask, toggleTask,
     setPin, setAutoStart, setSettings, setOpacity,
+    setPassthrough, setPassthroughShortcut,
     exportData, importData, loadSample, clearAll, openDataDir,
     tidy,
   };
